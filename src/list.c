@@ -158,7 +158,7 @@ list_is_singleton (List * list)
  * also free the list structure itself.
  */
 List *
-list_free_with (List * list, void (*free_func)(void *))
+list_free_with (List * list, void * (*free_func)(void *))
 {
   List * l, * ln;
 

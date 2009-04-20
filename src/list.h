@@ -114,7 +114,7 @@ int list_is_singleton (List * list);
  * \param free_func a function to free each data element
  * \returns NULL on success
  */
-List * list_free_with (List * list, void (*free_func)(void *));
+List * list_free_with (List * list, void * (*free_func)(void *));
 
 /**
  * Free a list, using free() to free each data element
