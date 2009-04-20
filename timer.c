@@ -1,3 +1,5 @@
+/* gcc timer.c -o timer -lrt */
+
 #include <sys/timerfd.h>
 #include <time.h>
 #include <unistd.h>
