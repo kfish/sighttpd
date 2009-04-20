@@ -1,0 +1,14 @@
+
+Installation
+------------
+
+This source archive uses the GNU autotools to build. Ensure that the standard GNU
+build environment is available, including autoconf, automake, pkg-config.
+
+To build:
+
+    autoreconf -vif
+    ./configure
+    make
+    make install
+
