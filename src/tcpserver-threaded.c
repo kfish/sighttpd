@@ -8,24 +8,51 @@
 #include <pthread.h>
 #include <netdb.h>
 
+#include "params.h"
+
 void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
+char * test_headers =
+  "Flim: flooey\r\n"
+  "Host: camserve.cams.com\r\n"
+  "\r\n";
+
 void * http_response (void *arg)
 {
+        Params * request_headers;
 	FILE *fp = (FILE *) arg;
-	char s[256];
+	char s[1024], canon[1024];
+        char * start;
+        static char * cur = NULL;
+        static size_t rem=1024;
+
+        if (cur == NULL) cur = s;
 
 	/* proc client's requests */
-	while (fgets(s, sizeof(s), fp) != 0 && strcmp(s, "bye\n") != 0) {
-                if (!strcmp (s, "GET /stream.m4v HTTP/1.1\r\n")) {
-                        fputs ("streeeeeeeeeeam!", fp);
+	while (fgets(cur, rem, fp) != 0 && strcmp(s, "bye\n") != 0) {
+                if (!strcmp (cur, "GET /stream.m4v HTTP/1.1\r\n")) {
+                        start = cur;
                 } else {
+                        puts ("========");
+                        puts (start);
+                        request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
+                        if (request_headers != NULL) {
+                                params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
+                                fputs (canon, fp);
+                                goto closeit;
+                        } else {
+                                cur += strlen (cur);
+                        }
+#if 0
 		        printf("msg: %s", s);	/* display message */
 		        fputs(s, fp);	/* echo it back */
+#endif
                 }
 	}
+
+closeit:
 
 	fclose(fp);		/* close the client's channel */
 
@@ -36,6 +63,15 @@ int main(int count, char *args[])
 {
 	struct sockaddr_in addr;
 	int sd, port;
+
+        char pout[1024];
+        Params * params;
+
+        params = params_new_parse (test_headers, strlen (test_headers), PARAMS_HEADERS);
+        params_snprint (pout, 1024, params, PARAMS_HEADERS);
+        puts (pout);
+
+        printf ("Heehee\n");
 
 	if (count != 2) {
 		printf("usage: %s <protocol or portnum>\n", args[0]);

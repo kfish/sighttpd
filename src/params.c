@@ -28,6 +28,9 @@ static Params *
 param_new (char * key, char * value)
 {
   Params * p = malloc (sizeof (Params));
+
+  printf ("Creating params for %s = %s\n", key, value);
+
   p->key = strdup (key);
   p->value = strdup (value);
   return p;
@@ -64,7 +67,7 @@ snprint_params_format (char * buf, int n, List * params, char * format)
 
 int
 params_snprint (char * buf, size_t n, List * params,
-		    ParamStyle style)
+                ParamStyle style)
 {
   char * format = NULL;
   int len;
@@ -183,6 +186,8 @@ params_merge (List * dest, List * src)
   return dest;
 }
 
+/* Requires NULL-terminated input, as guaranteed by query and headers
+ * parsers below */
 static List *
 params_new_parse_delim (char * input, char * val_delim, char * end_delim)
 {
@@ -228,27 +233,33 @@ params_new_parse_delim (char * input, char * val_delim, char * end_delim)
 }
 
 static List *
-params_new_parse_query (char * query_string)
+params_new_parse_query (char * query_string, size_t len)
 {
   char * cquery;
   List * params;
 
-  cquery = strdup (query_string);
+  cquery = strndup (query_string, len);
   params = params_new_parse_delim (cquery, "=", "&");
   free (cquery);
 
   return params;
 }
 
+/*
+ * Canonicalize HTTP-style headers, but return NULL if they are not
+ * terminated by CRLFCRLF.
+ */
 static char *
-headers_canonicalize (char * headers)
+headers_canonicalize (char * headers, size_t len)
 {
   char * new_headers;
-  char * c, * n;
+  char * c, * n, * eol;
   char * spht = " \t";
   char * crlf = "\r\n";
   char * lws = " \t\r\n";
   size_t span;
+  int nr_cr, nr_lf, i;
+  int success = 0;
 
   new_headers = malloc (strlen (headers) + 1);
 
@@ -256,17 +267,20 @@ headers_canonicalize (char * headers)
   n = new_headers;
 
   while (*c) {
+    /* Skip non-whitespace */
     span = strcspn (c, lws);
     memcpy (n, c, span);
     n += span;
     c += span;
 
-    /* collapse a sequence of SP and HT into a single SP */
+    /* Collapse a sequence of SP and HT into a single SP */
     span = strspn (c, spht);
     if (span > 0) {
       c += span;
       *n++ = ' ';
     }
+
+    eol = c;
 
     /* collapse a sequence of CR and LF into a single CRLF,
        unless the next line begins with SP or HT, in which
@@ -274,6 +288,19 @@ headers_canonicalize (char * headers)
     */
     span = strspn (c, crlf);
     if (span > 0) {
+      nr_cr = 0; nr_lf = 0;
+      for (i = 0; i < span; i++) {
+        if (eol[i] == '\r') nr_cr++;
+        if (eol[i] == '\n') nr_lf++;
+      }
+      
+      /* Break out successfully if this block of CRLF contains
+       * 2 or more of either of those characters */
+      if (nr_cr >= 2 || nr_lf >= 2) {
+          success = 1;
+          break;
+      }
+      
       c += span;
       span = strspn (c, spht);
       if (span > 0) {
@@ -288,16 +315,23 @@ headers_canonicalize (char * headers)
 
   *n = '\0';
 
+  if (!success) {
+    free (new_headers);
+    new_headers = NULL;
+  }
+
   return new_headers;
 }
 
 static List *
-params_new_parse_headers (char * headers)
+params_new_parse_headers (char * headers, size_t len)
 {
   char * cheaders;
   List * params;
 
-  cheaders = headers_canonicalize (headers);
+  cheaders = headers_canonicalize (headers, len);
+  if (cheaders == NULL) return NULL;
+
   params = params_new_parse_delim (cheaders, ": ", "\r\n");
   free (cheaders);
 
@@ -305,13 +339,13 @@ params_new_parse_headers (char * headers)
 }
 
 List *
-params_new_parse (char * input, ParamStyle style)
+params_new_parse (char * input, size_t len, ParamStyle style)
 {
   switch (style) {
   case PARAMS_QUERY:
-    return params_new_parse_query (input);
+    return params_new_parse_query (input, len);
   case PARAMS_HEADERS:
-    return params_new_parse_headers (input);
+    return params_new_parse_headers (input, len);
   default:
     return NULL;
   }

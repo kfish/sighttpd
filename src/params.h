@@ -67,12 +67,13 @@ typedef enum {
 /**
  * Create a new AnxParms object by parsing text input of a given format
  * \param input The text to parse
+ * \param len Length in bytes of \a input
  * \param style The formatting style of the text. Only
  *              PARAMS_QUERY and PARAMS_HEADERS are supported.
  * \returns A new Params object
  * \retval NULL no parameters found in input, or unsupported style
  */
-Params * params_new_parse (char * input, ParamStyle style);
+Params * params_new_parse (char * input, size_t len, ParamStyle style);
 
 /**
  * Print an AnxParms object with a given formatting style
