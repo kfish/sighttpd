@@ -21,6 +21,7 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
 {
         Params * response_headers = NULL;
         char buf[256], canon[1024];
+        char * user_agent;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
 
@@ -29,9 +30,10 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
         response_headers = params_append (response_headers, "Server", "Camserv");
         response_headers = params_append (response_headers, "Content-Type", "text/plain");
 
-        /* Apache-style logging: XXX: check for NULL params */
-        printf ("[%s] \"%s\" 200 \"%s\"\r\n", buf, request->original_reqline,
-                params_get (request_headers, "User-Agent"));
+        /* Apache-style logging */
+        if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
+            user_agent = "";
+        printf ("[%s] \"%s\" 200 \"%s\"\r\n", buf, request->original_reqline, user_agent);
 
         snprintf (buf, 256, "%d", strlen (FILE_TEXT));
         response_headers = params_append (response_headers, "Content-Length", buf);
