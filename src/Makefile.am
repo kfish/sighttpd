@@ -18,9 +18,11 @@ camserv_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 # Unit tests
 test: check
 
-TESTS = test_http_request test_params
+TESTS = httpdate_test test_http_request test_params
 
 noinst_PROGRAMS = $(TESTS)
+
+httpdate_test_SOURCES = httpdate.c httpdate_test.c
 
 test_http_request_SOURCES = http.c test_http_request.c
 
