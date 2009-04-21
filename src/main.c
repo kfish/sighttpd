@@ -9,7 +9,7 @@
 #include <netdb.h>
 
 #include "params.h"
-#include "http.h"
+#include "http-reqline.h"
 
 void panic(char *msg);
 

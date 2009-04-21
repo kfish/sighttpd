@@ -1,5 +1,5 @@
-#ifndef __HTTPDATE_H__
-#define __HTTPDATE_H__
+#ifndef __HTTP_DATE_H__
+#define __HTTP_DATE_H__
 
 #include <time.h>
 

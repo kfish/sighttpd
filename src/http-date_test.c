@@ -5,7 +5,7 @@
 
 #include "tests.h"
 
-#include "httpdate.h"
+#include "http-date.h"
 
 int
 main (int argc, char * argv[])

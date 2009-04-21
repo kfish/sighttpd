@@ -1,5 +1,5 @@
-#ifndef __HTTP_H__
-#define __HTTP_H__
+#ifndef __HTTP_REQLINE_H__
+#define __HTTP_REQLINE_H__
 
 /* http://www.ietf.org/rfc/rfc2616.txt */
 
@@ -29,4 +29,4 @@ typedef struct {
 
 size_t http_request_parse (char * s, size_t len, http_request * request);
 
-#endif /* __HTTP_H__ */
+#endif /* __HTTP_REQLINE_H__ */

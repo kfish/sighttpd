@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "http.h"
+#include "http-reqline.h"
 
 #include "tests.h"
 

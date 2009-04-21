@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "http.h"
+#include "http-reqline.h"
 
 size_t
 http_request_parse (char * s, size_t len, http_request * request)
