@@ -22,6 +22,7 @@ typedef enum {
 } http_version;
 
 typedef struct {
+        char * original_reqline;
         http_method method;
         http_version version;
         char * path;

@@ -9,9 +9,12 @@ http_request_parse (char * s, size_t len, http_request * request)
         char * sp = " ";
         char * crlf = "\r\n";
         size_t span, consumed=0;
+        char * original_reqline;
         http_method method;
         char * path;
         http_version version;
+
+        original_reqline = s;
 
         /* Extract method */
         span = strcspn (s, sp);
@@ -94,6 +97,8 @@ http_request_parse (char * s, size_t len, http_request * request)
         span = strspn (s, crlf);
         if (span > 2) goto fail;
         
+
+        request->original_reqline = strndup (original_reqline, consumed);
         consumed += span;
 
         request->method = method;
