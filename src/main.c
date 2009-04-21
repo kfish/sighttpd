@@ -18,21 +18,24 @@ void panic(char *msg);
 void * http_response (void *arg)
 {
         Params * request_headers;
+        http_request request;
 	FILE *fp = (FILE *) arg;
 	char s[1024], canon[1024];
         char * start;
         static char * cur = NULL;
         static size_t rem=1024;
+        int init=0;
 
         if (cur == NULL) cur = s;
 
 	/* proc client's requests */
 	while (fgets(cur, rem, fp) != 0 && strcmp(s, "bye\n") != 0) {
-                if (!strcmp (cur, "GET /stream.m4v HTTP/1.1\r\n")) {
+                if (!init && http_request_parse (cur, rem, &request) > 0) {
                         start = cur;
+                        init = 1;
+                        printf ("Got HTTP method %d, version %d for %s\n", request.method,
+                                request.version, request.path);
                 } else {
-                        puts ("========");
-                        puts (start);
                         request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
                         if (request_headers != NULL) {
                                 params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
@@ -41,10 +44,6 @@ void * http_response (void *arg)
                         } else {
                                 cur += strlen (cur);
                         }
-#if 0
-		        printf("msg: %s", s);	/* display message */
-		        fputs(s, fp);	/* echo it back */
-#endif
                 }
 	}
 
