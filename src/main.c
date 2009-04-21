@@ -9,6 +9,7 @@
 #include <netdb.h>
 
 #include "params.h"
+#include "http.h"
 
 void panic(char *msg);
 
@@ -64,14 +65,30 @@ int main(int count, char *args[])
 	struct sockaddr_in addr;
 	int sd, port;
 
-        char pout[1024];
-        Params * params;
+        {
+                char pout[1024];
+                Params * params;
 
-        params = params_new_parse (test_headers, strlen (test_headers), PARAMS_HEADERS);
-        params_snprint (pout, 1024, params, PARAMS_HEADERS);
-        puts (pout);
+                params = params_new_parse (test_headers, strlen (test_headers), PARAMS_HEADERS);
+                params_snprint (pout, 1024, params, PARAMS_HEADERS);
+                puts (pout);
+        }
 
-        printf ("Heehee\n");
+        {
+                http_request request;
+                size_t len;
+                char * r = "GET /stream.m4v HTTP/1.1\r\n";
+
+                len = http_request_parse (r, strlen(r), &request);
+                printf ("Consumed %d chars parsing req %s\n", len, r);
+
+                if (len > 0) {
+                        printf ("Method: %d\n", request.method);
+                        printf ("Path: %s\n", request.path);
+                        printf ("Version: %d\n", request.version);
+                }
+        }
+                
 
 	if (count != 2) {
 		printf("usage: %s <protocol or portnum>\n", args[0]);
