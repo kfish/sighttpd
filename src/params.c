@@ -89,15 +89,21 @@ params_snprint (char * buf, size_t n, List * params,
   }
 
   len = snprint_params_format (buf, (int) n, params, format);
+  if (len == -1) return -1;
 
   if (style == PARAMS_QUERY) {
-    if (len == -1) return -1;
-
     /* Remove trailing '&' after the last parameter */
     len--;
 
     if (len > (int)n) return len;
     buf[len] = '\0';
+  } else if (style == PARAMS_HEADERS) {
+    /* Add extra trailing CRLF */
+    if (len < n-2) {
+      buf[len++] = '\r';
+      buf[len++] = '\n';
+      buf[len] = '\0';
+    }
   }
 
   return len;

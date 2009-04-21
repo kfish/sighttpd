@@ -15,12 +15,35 @@ void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
+#define FILE_TEXT "flim flim flim\n"
+
+void * respond (FILE * fp, http_request * request, Params * request_headers)
+{
+        Params * response_headers = NULL;
+        char buf[256], canon[1024];
+
+        fputs ("HTTP/1.1 200 OK\r\n", fp);
+
+        httpdate_snprint (buf, 256, time(NULL));
+        response_headers = params_append (response_headers, "Date", buf);
+        response_headers = params_append (response_headers, "Server", "Camserv");
+        response_headers = params_append (response_headers, "Content-Type", "text/plain");
+
+        snprintf (buf, 256, "%d", strlen (FILE_TEXT));
+        response_headers = params_append (response_headers, "Content-Length", buf);
+
+        params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
+        fputs (canon, fp);
+
+        fputs (FILE_TEXT, fp);
+}
+
 void * http_response (void *arg)
 {
-        Params * request_headers, * response_headers=NULL;
+        Params * request_headers;
         http_request request;
 	FILE *fp = (FILE *) arg;
-	char s[1024], canon[1024];
+	char s[1024];
         char * start;
         static char * cur = NULL;
         static size_t rem=1024;
@@ -38,12 +61,7 @@ void * http_response (void *arg)
                 } else {
                         request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
                         if (request_headers != NULL) {
-                                char buf[256];
-                                httpdate_snprint (buf, 256, time(NULL));
-                                response_headers = params_append (response_headers, "Date", buf);
-                                response_headers = params_append (response_headers, "Server", "Camserv");
-                                params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
-                                fputs (canon, fp);
+                                respond (fp, &request, request_headers);
                                 goto closeit;
                         } else {
                                 cur += strlen (cur);
