@@ -88,10 +88,12 @@ http_request_parse (char * s, size_t len, http_request * request)
                 goto fail;
         }
 
+        s += span;
         consumed += span;
 
         span = strspn (s, crlf);
         if (span > 2) goto fail;
+        
         consumed += span;
 
         request->method = method;
