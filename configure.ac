@@ -3,7 +3,7 @@
 AC_PREREQ(2.61)
 AC_INIT(camserv, 0.1.0, [conrad@metadecks.org])
 AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([src/anx_params.h])
+AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADER([config.h])
 
 # Checks for programs.
