@@ -29,8 +29,6 @@ param_new (char * key, char * value)
 {
   Params * p = malloc (sizeof (Params));
 
-  printf ("Creating params for %s = %s\n", key, value);
-
   p->key = strdup (key);
   p->value = strdup (value);
   return p;
@@ -223,9 +221,10 @@ params_new_parse_delim (char * input, char * val_delim, char * end_delim)
       if (val) *val++ = '\0';
     }
 
-    params = params_append (params, key, val);
-
-    key = end;
+    if (val && end) {
+      params = params_append (params, key, val);
+      key = end;
+    }
 
   } while (end != NULL);
 
