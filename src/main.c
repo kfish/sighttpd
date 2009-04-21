@@ -15,11 +15,6 @@ void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
-char * test_headers =
-  "Flim: flooey\r\n"
-  "Host: camserve.cams.com\r\n"
-  "\r\n";
-
 void * http_response (void *arg)
 {
         Params * request_headers;
@@ -64,15 +59,6 @@ int main(int count, char *args[])
 {
 	struct sockaddr_in addr;
 	int sd, port;
-
-        {
-                char pout[1024];
-                Params * params;
-
-                params = params_new_parse (test_headers, strlen (test_headers), PARAMS_HEADERS);
-                params_snprint (pout, 1024, params, PARAMS_HEADERS);
-                puts (pout);
-        }
 
         {
                 http_request request;
