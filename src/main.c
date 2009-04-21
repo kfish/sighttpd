@@ -17,7 +17,7 @@ void panic(char *msg);
 
 void * http_response (void *arg)
 {
-        Params * request_headers;
+        Params * request_headers, * response_headers=NULL;
         http_request request;
 	FILE *fp = (FILE *) arg;
 	char s[1024], canon[1024];
@@ -38,7 +38,11 @@ void * http_response (void *arg)
                 } else {
                         request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
                         if (request_headers != NULL) {
-                                params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
+                                char buf[256];
+                                httpdate_snprint (buf, 256, time(NULL));
+                                response_headers = params_append (response_headers, "Date", buf);
+                                response_headers = params_append (response_headers, "Server", "Camserv");
+                                params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
                                 fputs (canon, fp);
                                 goto closeit;
                         } else {
