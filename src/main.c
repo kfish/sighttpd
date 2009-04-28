@@ -14,6 +14,7 @@
 
 #include "params.h"
 #include "http-reqline.h"
+#include "status.h"
 
 void panic(char *msg);
 
@@ -26,20 +27,32 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
         Params * response_headers = NULL;
         char date[256], length[16], canon[1024];
         char * user_agent;
+        int status_request=0;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
+
+        status_request = !strncmp (request->path, "/status", 7);
 
         httpdate_snprint (date, 256, time(NULL));
         response_headers = params_append (response_headers, "Date", date);
         response_headers = params_append (response_headers, "Server", "Sighttpd/" VERSION);
-        response_headers = params_append (response_headers, "Content-Type", "text/plain");
-        snprintf (length, 16, "%d", strlen (FILE_TEXT));
-        response_headers = params_append (response_headers, "Content-Length", length);
+
+        if (status_request) {
+                response_headers = status_append_headers (response_headers);
+        } else {
+                response_headers = params_append (response_headers, "Content-Type", "text/plain");
+                snprintf (length, 16, "%d", strlen (FILE_TEXT));
+                response_headers = params_append (response_headers, "Content-Length", length);
+        }
 
         params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
         fputs (canon, fp);
 
-        fputs (FILE_TEXT, fp);
+        if (status_request) {
+                status_stream_body (fp);
+        } else {
+                fputs (FILE_TEXT, fp);
+        }
 
         /* Dump request headers to stdout */
         params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
