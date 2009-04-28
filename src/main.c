@@ -139,6 +139,8 @@ int main(int count, char *args[])
 		pthread_t child;
 		FILE *fp;
 
+                log_open ();
+
 		/* process all incoming clients */
 		while (1) {
 			size = sizeof(struct sockaddr_in);
@@ -152,5 +154,7 @@ int main(int count, char *args[])
 				pthread_detach(child);	/* don't track it */
 			}
 		}
+
+                log_close ();
 	}
 }
