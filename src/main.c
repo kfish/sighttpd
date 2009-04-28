@@ -20,33 +20,31 @@ void panic(char *msg);
 void * respond (FILE * fp, http_request * request, Params * request_headers)
 {
         Params * response_headers = NULL;
-        char buf[256], canon[1024];
+        char date[256], length[16], canon[1024];
         char * user_agent;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
 
-        httpdate_snprint (buf, 256, time(NULL));
-        response_headers = params_append (response_headers, "Date", buf);
+        httpdate_snprint (date, 256, time(NULL));
+        response_headers = params_append (response_headers, "Date", date);
         response_headers = params_append (response_headers, "Server", "Camserv");
         response_headers = params_append (response_headers, "Content-Type", "text/plain");
-
-        /* Apache-style logging */
-        if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
-            user_agent = "";
-        printf ("[%s] \"%s\" 200 \"%s\"\r\n", buf, request->original_reqline, user_agent);
-
-        snprintf (buf, 256, "%d", strlen (FILE_TEXT));
-        response_headers = params_append (response_headers, "Content-Length", buf);
+        snprintf (length, 16, "%d", strlen (FILE_TEXT));
+        response_headers = params_append (response_headers, "Content-Length", length);
 
         params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
         fputs (canon, fp);
 
         fputs (FILE_TEXT, fp);
 
+        /* Dump request headers to stdout */
         params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
         puts (canon);
 
-
+        /* Apache-style logging */
+        if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
+            user_agent = "";
+        printf ("[%s] \"%s\" 200 %s \"%s\"\r\n", date, request->original_reqline, length, user_agent);
 }
 
 void * http_response (void *arg)
