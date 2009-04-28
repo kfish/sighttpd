@@ -34,17 +34,17 @@ param_new (char * key, char * value)
   return p;
 }
 
-static int
-snprint_params_format (char * buf, int n, List * params, char * format)
+static size_t
+snprint_params_format (char * buf, size_t n, List * params, char * format)
 {
   List * l;
   Params * p;
-  int len, total = 0;
+  size_t len, total = 0;
 
   for (l = params; l; l = l->next) {
     p = (Params *)l->data;
 
-    len = snprintf (buf, n, format, p->key, p->value);
+    len = (size_t)snprintf (buf, n, format, p->key, p->value);
 
     /* drop out if non-C99 return value */
     if (len < 0) return -1;
@@ -68,7 +68,7 @@ params_snprint (char * buf, size_t n, List * params,
                 ParamStyle style)
 {
   char * format = NULL;
-  int len;
+  size_t len;
 
   switch (style) {
   case PARAMS_QUERY:
@@ -88,21 +88,23 @@ params_snprint (char * buf, size_t n, List * params,
     break;
   }
 
-  len = snprint_params_format (buf, (int) n, params, format);
+  len = snprint_params_format (buf, n, params, format);
   if (len == -1) return -1;
 
   if (style == PARAMS_QUERY) {
     /* Remove trailing '&' after the last parameter */
     len--;
 
-    if (len > (int)n) return len;
-    buf[len] = '\0';
+    if (len <= n)
+      buf[len] = '\0';
   } else if (style == PARAMS_HEADERS) {
     /* Add extra trailing CRLF */
-    if (len < n-2) {
+    if (n > 0 && len < n-2) {
       buf[len++] = '\r';
       buf[len++] = '\n';
       buf[len] = '\0';
+    } else {
+      len += 2;
     }
   }
 

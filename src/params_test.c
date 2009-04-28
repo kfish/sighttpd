@@ -26,7 +26,8 @@ static char * m =
 static char * h_header =
 "Fish-Type: haddock\r\n"
 "Cheese-Age: mouldy,green\r\n"
-"Moose-Flavor: red\r\n";
+"Moose-Flavor: red\r\n"
+"\r\n";
 
 static char * h_query =
 "Fish-Type=haddock&Cheese-Age=mouldy,green&Moose-Flavor=red";
@@ -83,7 +84,7 @@ test_params (Params * params)
   test_print (params, PARAMS_QUERY, 58, h_query);
 
   INFO ("  print headers");
-  test_print (params, PARAMS_HEADERS, 65, h_header);
+  test_print (params, PARAMS_HEADERS, 67, h_header);
 
   INFO ("  print metatags");
   test_print (params, PARAMS_METATAGS, 134, h_meta);
