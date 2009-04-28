@@ -21,11 +21,30 @@ void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
-void * respond (FILE * fp, http_request * request, Params * request_headers)
+void log_access (http_request * request, Params * request_headers, Params * response_headers)
+{
+        char canon[1024];
+        char * date, * user_agent, * content_length;
+
+        /* Dump request headers to stdout */
+        params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
+        puts (canon);
+
+        /* Apache-style logging */
+        if ((date = params_get (response_headers, "Date")) == NULL)
+            date = "";
+        if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
+            user_agent = "";
+        if ((content_length = params_get (response_headers, "Content-Length")) == NULL)
+            content_length = "";
+        printf ("[%s] \"%s\" 200 %s \"%s\"\r\n", date, request->original_reqline,
+                content_length, user_agent);
+}
+
+void respond (FILE * fp, http_request * request, Params * request_headers)
 {
         Params * response_headers = NULL;
-        char date[256], canon[1024];
-        char * user_agent, * content_length;
+        char date[256], headers_out[1024];
         int status_request=0;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
@@ -42,8 +61,8 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
                 response_headers = flim_append_headers (response_headers);
         }
 
-        params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
-        fputs (canon, fp);
+        params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
+        fputs (headers_out, fp);
 
         if (status_request) {
                 status_stream_body (fp);
@@ -51,17 +70,7 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
                 flim_stream_body (fp);
         }
 
-        /* Dump request headers to stdout */
-        params_snprint (canon, 1024, request_headers, PARAMS_HEADERS);
-        puts (canon);
-
-        /* Apache-style logging */
-        if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
-            user_agent = "";
-        if ((content_length = params_get (response_headers, "Content-Length")) == NULL)
-            content_length = "";
-        printf ("[%s] \"%s\" 200 %s \"%s\"\r\n", date, request->original_reqline,
-                content_length, user_agent);
+        log_access (request, request_headers, response_headers);
 }
 
 void * http_response (void *arg)
