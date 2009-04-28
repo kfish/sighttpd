@@ -1,5 +1,9 @@
 /* gcc tcpserver-threaded.c -o tcpserver-threaded -lpthread */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -27,7 +31,7 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
 
         httpdate_snprint (date, 256, time(NULL));
         response_headers = params_append (response_headers, "Date", date);
-        response_headers = params_append (response_headers, "Server", "Camserv");
+        response_headers = params_append (response_headers, "Server", "Sighttpd/" VERSION);
         response_headers = params_append (response_headers, "Content-Type", "text/plain");
         snprintf (length, 16, "%d", strlen (FILE_TEXT));
         response_headers = params_append (response_headers, "Content-Length", length);

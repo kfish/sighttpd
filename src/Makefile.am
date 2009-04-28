@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = camserv
+bin_PROGRAMS = sighttpd
 
 noinst_HEADERS = \
         list.h \
@@ -8,14 +8,14 @@ noinst_HEADERS = \
         http-reqline.h \
         tests.h
 
-camserv_SOURCES = \
+sighttpd_SOURCES = \
 	main.c \
 	list.c \
 	params.c \
         http-date.c \
         http-reqline.c
 
-camserv_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
+sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 
 # Unit tests
 test: check

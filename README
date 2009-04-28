@@ -1,3 +1,9 @@
+sighttpd - A stream ingress HTTP server
+=======================================
+
+sighttpd is an HTTP server designed to work with realtime stream input.
+It is particularly useful for making streams from a camera available to multiple
+clients.
 
 Installation
 ------------
