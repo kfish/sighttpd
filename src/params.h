@@ -5,6 +5,8 @@
 #ifndef __PARAMS_H__
 #define __PARAMS_H__
 
+#include <stdlib.h>
+
 /** \file
  * Manipulation of name=value parameters, with parsing of URI query
  * strings and HTTP-style headers, and printing to these formats and

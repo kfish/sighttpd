@@ -6,6 +6,7 @@ noinst_HEADERS = \
         params.h \
         http-date.h \
         http-reqline.h \
+        log.h \
         flim.h \
         status.h \
         tests.h
@@ -16,6 +17,7 @@ sighttpd_SOURCES = \
 	params.c \
         http-date.c \
         http-reqline.c \
+        log.c \
         flim.c \
         status.c
 
