@@ -15,18 +15,17 @@
 #include "params.h"
 #include "http-reqline.h"
 #include "status.h"
+#include "flim.h"
 
 void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
-#define FILE_TEXT "flim flim flim\n"
-
 void * respond (FILE * fp, http_request * request, Params * request_headers)
 {
         Params * response_headers = NULL;
-        char date[256], length[16], canon[1024];
-        char * user_agent;
+        char date[256], canon[1024];
+        char * user_agent, * content_length;
         int status_request=0;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
@@ -40,9 +39,7 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
         if (status_request) {
                 response_headers = status_append_headers (response_headers);
         } else {
-                response_headers = params_append (response_headers, "Content-Type", "text/plain");
-                snprintf (length, 16, "%d", strlen (FILE_TEXT));
-                response_headers = params_append (response_headers, "Content-Length", length);
+                response_headers = flim_append_headers (response_headers);
         }
 
         params_snprint (canon, 1024, response_headers, PARAMS_HEADERS);
@@ -51,7 +48,7 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
         if (status_request) {
                 status_stream_body (fp);
         } else {
-                fputs (FILE_TEXT, fp);
+                flim_stream_body (fp);
         }
 
         /* Dump request headers to stdout */
@@ -61,7 +58,10 @@ void * respond (FILE * fp, http_request * request, Params * request_headers)
         /* Apache-style logging */
         if ((user_agent = params_get (request_headers, "User-Agent")) == NULL)
             user_agent = "";
-        printf ("[%s] \"%s\" 200 %s \"%s\"\r\n", date, request->original_reqline, length, user_agent);
+        if ((content_length = params_get (response_headers, "Content-Length")) == NULL)
+            content_length = "";
+        printf ("[%s] \"%s\" 200 %s \"%s\"\r\n", date, request->original_reqline,
+                content_length, user_agent);
 }
 
 void * http_response (void *arg)
