@@ -10,37 +10,37 @@
 
 #include "list.h"
 
-static List *
+static list_t *
 list_node_new (void * data)
 {
-  List * l;
+  list_t * l;
 
-  l = (List *) malloc (sizeof (List));
+  l = (list_t *) malloc (sizeof (list_t));
   l->prev = l->next = NULL;
   l->data = data;
 
   return l;
 }
 
-List *
+list_t *
 list_new (void)
 {
   return NULL;
 }
 
-List *
-list_tail (List * list)
+list_t *
+list_tail (list_t * list)
 {
-  List * l;
+  list_t * l;
   for (l = list; l; l = l->next)
     if (l->next == NULL) return l;
   return NULL;
 }
 
-List *
-list_prepend (List * list, void * data)
+list_t *
+list_prepend (list_t * list, void * data)
 {
-  List * l = list_node_new (data);
+  list_t * l = list_node_new (data);
 
   if (list == NULL) return l;
 
@@ -50,11 +50,11 @@ list_prepend (List * list, void * data)
   return l;
 }
 
-List *
-list_append (List * list, void * data)
+list_t *
+list_append (list_t * list, void * data)
 {
-  List * l = list_node_new (data);
-  List * last;
+  list_t * l = list_node_new (data);
+  list_t * last;
 
   if (list == NULL) return l;
 
@@ -64,10 +64,10 @@ list_append (List * list, void * data)
   return list;
 }
 
-List *
-list_add_before (List * list, void * data, List * node)
+list_t *
+list_add_before (list_t * list, void * data, list_t * node)
 {
-  List * l, * p;
+  list_t * l, * p;
 
   if (list == NULL) return list_node_new (data);
   if (node == NULL) return list_append (list, data);
@@ -84,10 +84,10 @@ list_add_before (List * list, void * data, List * node)
   return list;
 }
 
-List *
-list_add_after (List * list, void * data, List * node)
+list_t *
+list_add_after (list_t * list, void * data, list_t * node)
 {
-  List * l, * n;
+  list_t * l, * n;
 
   if (node == NULL) return list_prepend (list, data);
 
@@ -102,10 +102,10 @@ list_add_after (List * list, void * data, List * node)
   return list;
 }
 
-List *
-list_find (List * list, void * data)
+list_t *
+list_find (list_t * list, void * data)
 {
-  List * l;
+  list_t * l;
 
   for (l = list; l; l = l->next)
     if (l->data == data) return l;
@@ -113,8 +113,8 @@ list_find (List * list, void * data)
   return NULL;
 }
 
-List *
-list_remove (List * list, List * node)
+list_t *
+list_remove (list_t * list, list_t * node)
 {
   if (node == NULL) return list;
 
@@ -126,9 +126,9 @@ list_remove (List * list, List * node)
 }
 
 int
-list_length (List * list)
+list_length (list_t * list)
 {
-  List * l;
+  list_t * l;
   int c = 0;
 
   for (l = list; l; l = l->next)
@@ -138,13 +138,13 @@ list_length (List * list)
 }
 
 int
-list_is_empty (List * list)
+list_is_empty (list_t * list)
 {
   return (list == NULL);
 }
 
 int
-list_is_singleton (List * list)
+list_is_singleton (list_t * list)
 {
   if (list == NULL) return 0;
   if (list->next == NULL) return 1;
@@ -157,10 +157,10 @@ list_is_singleton (List * list)
  * Step through list 'list', freeing each node using free_func(), and
  * also free the list structure itself.
  */
-List *
-list_free_with (List * list, void * (*free_func)(void *))
+list_t *
+list_free_with (list_t * list, void * (*free_func)(void *))
 {
-  List * l, * ln;
+  list_t * l, * ln;
 
   for (l = list; l; l = ln) {
     ln = l->next;
@@ -176,10 +176,10 @@ list_free_with (List * list, void * (*free_func)(void *))
  *
  * Free the list structure 'list', but not its nodes.
  */
-List *
-list_free (List * list)
+list_t *
+list_free (list_t * list)
 {
-  List * l, * ln;
+  list_t * l, * ln;
 
   for (l = list; l; l = ln) {
     ln = l->next;

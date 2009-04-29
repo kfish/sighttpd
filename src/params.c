@@ -35,9 +35,9 @@ param_new (char * key, char * value)
 }
 
 static size_t
-snprint_params_format (char * buf, size_t n, List * params, char * format)
+snprint_params_format (char * buf, size_t n, list_t * params, char * format)
 {
-  List * l;
+  list_t * l;
   params_t * p;
   size_t len, total = 0;
 
@@ -64,7 +64,7 @@ snprint_params_format (char * buf, size_t n, List * params, char * format)
 }
 
 int
-params_snprint (char * buf, size_t n, List * params,
+params_snprint (char * buf, size_t n, list_t * params,
                 params_style style)
 {
   char * format = NULL;
@@ -112,10 +112,10 @@ params_snprint (char * buf, size_t n, List * params,
 }
 
 char *
-params_get (List * params, char * key)
+params_get (list_t * params, char * key)
 {
   params_t * p;
-  List * l;
+  list_t * l;
 
   for (l = params; l; l = l->next) {
     p = (params_t *)l->data;
@@ -127,19 +127,19 @@ params_get (List * params, char * key)
   return NULL;
 }
 
-static List *
-params_add (List * params, char * key, char * value)
+static list_t *
+params_add (list_t * params, char * key, char * value)
 {
   params_t * p = param_new (key, value);
 
   return list_append (params, p);
 }
 
-List *
-params_append (List * params, char * key, char * value)
+list_t *
+params_append (list_t * params, char * key, char * value)
 {
   params_t * p;
-  List * l;
+  list_t * l;
   char * new_value;
 
   if (!key || !value) return params;
@@ -158,11 +158,11 @@ params_append (List * params, char * key, char * value)
   return params_add (params, key, value);
 }
 
-List *
-params_replace (List * params, char * key, char * value)
+list_t *
+params_replace (list_t * params, char * key, char * value)
 {
   params_t * p;
-  List * l;
+  list_t * l;
 
   if (!key) return params;
 
@@ -178,11 +178,11 @@ params_replace (List * params, char * key, char * value)
   return params_add (params, key, value);
 }
 
-List *
-params_merge (List * dest, List * src)
+list_t *
+params_merge (list_t * dest, list_t * src)
 {
   params_t * p;
-  List * l;
+  list_t * l;
   
   for (l = src; l; l = l->next) {
     p = (params_t *)l->data;
@@ -194,11 +194,11 @@ params_merge (List * dest, List * src)
 
 /* Requires NULL-terminated input, as guaranteed by query and headers
  * parsers below */
-static List *
+static list_t *
 params_new_parse_delim (char * input, char * val_delim, char * end_delim)
 {
   char * key, * val, * end;
-  List * params = list_new ();
+  list_t * params = list_new ();
   size_t span;
 
   if (!input) return params;
@@ -239,11 +239,11 @@ params_new_parse_delim (char * input, char * val_delim, char * end_delim)
   return params;
 }
 
-static List *
+static list_t *
 params_new_parse_query (char * query_string, size_t len)
 {
   char * cquery;
-  List * params;
+  list_t * params;
 
   cquery = strndup (query_string, len);
   params = params_new_parse_delim (cquery, "=", "&");
@@ -330,11 +330,11 @@ headers_canonicalize (char * headers, size_t len)
   return new_headers;
 }
 
-static List *
+static list_t *
 params_new_parse_headers (char * headers, size_t len)
 {
   char * cheaders;
-  List * params;
+  list_t * params;
 
   cheaders = headers_canonicalize (headers, len);
   if (cheaders == NULL) return NULL;
@@ -345,7 +345,7 @@ params_new_parse_headers (char * headers, size_t len)
   return params;
 }
 
-List *
+list_t *
 params_new_parse (char * input, size_t len, params_style style)
 {
   switch (style) {
@@ -370,11 +370,11 @@ param_free (void * data)
   return NULL;
 }
 
-List *
-params_remove (List * params, char * key)
+list_t *
+params_remove (list_t * params, char * key)
 {
   params_t * p;
-  List * l;
+  list_t * l;
 
   for (l = params; l; l = l->next) {
     p = (params_t *)l->data;
@@ -389,8 +389,8 @@ params_remove (List * params, char * key)
   return params;
 }
 
-List *
-params_free (List * params)
+list_t *
+params_free (list_t * params)
 {
   return list_free_with (params, param_free);
 }
