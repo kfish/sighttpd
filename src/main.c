@@ -26,10 +26,12 @@ void respond (FILE * fp, http_request * request, params_t * request_headers)
         params_t * response_headers = NULL;
         char date[256], headers_out[1024];
         int status_request=0;
+        int stream_request=0;
 
         fputs ("HTTP/1.1 200 OK\r\n", fp);
 
         status_request = !strncmp (request->path, "/status", 7);
+        stream_request = !strncmp (request->path, "/stream", 7);
 
         httpdate_snprint (date, 256, time(NULL));
         response_headers = params_append (response_headers, "Date", date);
@@ -37,6 +39,8 @@ void respond (FILE * fp, http_request * request, params_t * request_headers)
 
         if (status_request) {
                 response_headers = status_append_headers (response_headers);
+        } else if (stream_request) {
+                response_headers = stream_append_headers (response_headers);
         } else {
                 response_headers = flim_append_headers (response_headers);
         }
@@ -44,13 +48,15 @@ void respond (FILE * fp, http_request * request, params_t * request_headers)
         params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
         fputs (headers_out, fp);
 
+        log_access (request, request_headers, response_headers);
+
         if (status_request) {
                 status_stream_body (fp);
+        } else if (stream_request) {
+                stream_stream_body (fp);
         } else {
                 flim_stream_body (fp);
         }
-
-        log_access (request, request_headers, response_headers);
 }
 
 void * http_response (void *arg)
@@ -141,6 +147,8 @@ int main(int count, char *args[])
 
                 log_open ();
 
+                stream_init ();
+
 		/* process all incoming clients */
 		while (1) {
 			size = sizeof(struct sockaddr_in);
@@ -155,6 +163,7 @@ int main(int count, char *args[])
 			}
 		}
 
+                stream_close ();
                 log_close ();
 	}
 }
