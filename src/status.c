@@ -33,7 +33,15 @@ status_append_headers (params_t * response_headers)
 }
 
 int
-status_stream_body (FILE * stream)
+status_stream_body (int fd)
 {
-    fprintf (stream, STATUS_TMPL, VERSION, VERSION);
+    char buf[4096];
+    int n;
+
+    n = snprintf (buf, 4096, STATUS_TMPL, VERSION, VERSION);
+    if (n < 0) return -1;
+
+    if (n > 4096) n = 4096;
+
+    return write (fd, buf, n);
 }

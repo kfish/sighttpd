@@ -15,20 +15,23 @@
 #include "log.h"
 
 #include "status.h"
+#include "stream.h"
 #include "flim.h"
 
 void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
-void respond (FILE * fp, http_request * request, params_t * request_headers)
+#define STATUS_OK "HTTP/1.1 200 OK\r\n"
+
+void respond (int fd, http_request * request, params_t * request_headers)
 {
         params_t * response_headers = NULL;
         char date[256], headers_out[1024];
         int status_request=0;
         int stream_request=0;
 
-        fputs ("HTTP/1.1 200 OK\r\n", fp);
+        write (fd, STATUS_OK, strlen(STATUS_OK));
 
         status_request = !strncmp (request->path, "/status", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
@@ -46,24 +49,26 @@ void respond (FILE * fp, http_request * request, params_t * request_headers)
         }
 
         params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
-        fputs (headers_out, fp);
+        write (fd, headers_out, strlen(headers_out));
 
         log_access (request, request_headers, response_headers);
 
         if (status_request) {
-                status_stream_body (fp);
+                status_stream_body (fd);
         } else if (stream_request) {
-                stream_stream_body (fp);
+                stream_stream_body (fd);
         } else {
-                flim_stream_body (fp);
+                flim_stream_body (fd);
         }
+
+        printf ("Finished serving / lost client\n");
 }
 
 void * http_response (void *arg)
 {
         params_t * request_headers;
         http_request request;
-	FILE *fp = (FILE *) arg;
+        int fd = * (int *)arg;
 	char s[1024];
         char * start;
         static char * cur = NULL;
@@ -73,7 +78,7 @@ void * http_response (void *arg)
         if (cur == NULL) cur = s;
 
 	/* proc client's requests */
-	while (fgets(cur, rem, fp) != 0 && strcmp(s, "bye\n") != 0) {
+	while (read(fd, cur, rem) > 0) {
                 if (!init && http_request_parse (cur, rem, &request) > 0) {
                         start = cur;
                         init = 1;
@@ -82,7 +87,7 @@ void * http_response (void *arg)
                 } else {
                         request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
                         if (request_headers != NULL) {
-                                respond (fp, &request, request_headers);
+                                respond (fd, &request, request_headers);
                                 goto closeit;
                         } else {
                                 cur += strlen (cur);
@@ -92,7 +97,7 @@ void * http_response (void *arg)
 
 closeit:
 
-	fclose(fp);		/* close the client's channel */
+	close(fd);		/* close the client's channel */
 
 	return 0;		/* terminate the thread */
 }
@@ -143,7 +148,6 @@ int main(int count, char *args[])
 		socklen_t size;
 		struct sockaddr gotcha;
 		pthread_t child;
-		FILE *fp;
 
                 log_open ();
 
@@ -157,8 +161,7 @@ int main(int count, char *args[])
 			if (ad == -1) {
 				perror("accept");
 			} else {
-				fp = fdopen(ad, "r+");	/* convert into FILE* */
-				pthread_create(&child, 0,  http_response , fp);	/* start thread */
+				pthread_create(&child, 0,  http_response , &ad);	/* start thread */
 				pthread_detach(child);	/* don't track it */
 			}
 		}

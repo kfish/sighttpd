@@ -46,6 +46,7 @@ stream_init (void)
 void
 stream_close (void)
 {
+        printf ("stream_close\n");
         active = 0;
         ringbuffer_free (&stream_rb);
 }
@@ -59,7 +60,7 @@ stream_append_headers (params_t * response_headers)
 }
 
 int
-stream_stream_body (FILE * stream)
+stream_stream_body (int fd)
 {
         size_t available;
         size_t n;
@@ -73,12 +74,15 @@ stream_stream_body (FILE * stream)
 #ifdef DEBUG
                         printf ("stream_reader: %ld bytes available\n", available);
 #endif
-                        n = fwrite (ringbuffer_read_address (&stream_rb), 1, available, stream);
+                        n = write (fd, ringbuffer_read_address (&stream_rb), available);
 #ifdef DEBUG
-                        printf ("stream_reader: wrote %ld bytes\n", n);
+                        printf ("stream_reader: wrote %ld bytes to socket\n", n);
 #endif
-                        ringbuffer_read_advance (&stream_rb, n);
-                        fflush (stream);
+                        if (n >= 0) {
+                                ringbuffer_read_advance (&stream_rb, n);
+                        } else {
+                                perror ("stream_reader: write");
+                        }
                 }
         }
 }
