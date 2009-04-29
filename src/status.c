@@ -19,8 +19,8 @@
   "</body>\n" \
   "</head>\n"
 
-Params *
-status_append_headers (Params * response_headers)
+params_t *
+status_append_headers (params_t * response_headers)
 {
   char length[16];
 

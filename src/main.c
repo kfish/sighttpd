@@ -21,9 +21,9 @@ void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
-void respond (FILE * fp, http_request * request, Params * request_headers)
+void respond (FILE * fp, http_request * request, params_t * request_headers)
 {
-        Params * response_headers = NULL;
+        params_t * response_headers = NULL;
         char date[256], headers_out[1024];
         int status_request=0;
 
@@ -55,7 +55,7 @@ void respond (FILE * fp, http_request * request, Params * request_headers)
 
 void * http_response (void *arg)
 {
-        Params * request_headers;
+        params_t * request_headers;
         http_request request;
 	FILE *fp = (FILE *) arg;
 	char s[1024];

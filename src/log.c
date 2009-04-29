@@ -49,7 +49,7 @@ int log_close (void)
         }
 }
 
-void log_access (http_request * request, Params * request_headers, Params * response_headers)
+void log_access (http_request * request, params_t * request_headers, params_t * response_headers)
 {
         char canon[1024];
         char * date, * user_agent, * content_length;

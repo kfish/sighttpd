@@ -43,7 +43,7 @@ static char * h_param =
 "<param name=\"Moose-Flavor\" content=\"red\"/>\n";
 
 static void
-test_print (Params * params, ParamStyle style, int correct_len,
+test_print (params_t * params, params_style style, int correct_len,
 	    char * correct_output)
 {
   char buf[1024];
@@ -65,9 +65,9 @@ test_print (Params * params, ParamStyle style, int correct_len,
 }
 
 static void
-test_params (Params * params)
+test_params (params_t * params)
 {
-  Params * m_params = NULL;
+  params_t * m_params = NULL;
   char * v;
 
   INFO ("  get value");
@@ -119,7 +119,7 @@ test_params (Params * params)
 int
 main (int argc, char * argv[])
 {
-  Params * params;
+  params_t * params;
 
   INFO ("Testing param generation");
   params = NULL;

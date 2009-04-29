@@ -13,7 +13,7 @@
  * XML meta and param tags.
  *
  * - Field names are case-insensitive
- * - Field names are unique within an Params object. When parsing
+ * - Field names are unique within an params_t object. When parsing
  *   URI query strings or HTTP-style headers, if multiple entries
  *   for the same field name are found, the successive values are
  *   concatenated and separated by commas (as per RFC2616 sec 4.2)
@@ -24,15 +24,15 @@
  * - NULL is equivalent to an empty parameter set
  * - Create with params_new_parse() or params_clone(), or by
  *   adding a parameter to the empty set (NULL)
- * - The base value of an Params object is updated by calls to
+ * - The base value of an params_t object is updated by calls to
  *   params_replace(), params_append(), params_remove(),
  *   params_merge() and params_clone(). Hence the return value
  *   from these functions \b must be assigned back to the params object.
  */
-typedef void Params;
+typedef void params_t;
 
 /**
- * Formatting styles for parsing and printing Params objects
+ * Formatting styles for parsing and printing params_t objects
  */
 typedef enum {
   /** URI query format, eg.
@@ -64,7 +64,7 @@ typedef enum {
       </pre>
   */
   PARAMS_PARAMTAGS = 1001
-} ParamStyle;
+} params_style;
 
 /**
  * Create a new AnxParms object by parsing text input of a given format
@@ -72,16 +72,16 @@ typedef enum {
  * \param len Length in bytes of \a input
  * \param style The formatting style of the text. Only
  *              PARAMS_QUERY and PARAMS_HEADERS are supported.
- * \returns A new Params object
+ * \returns A new params_t object
  * \retval NULL no parameters found in input, or unsupported style
  */
-Params * params_new_parse (char * input, size_t len, ParamStyle style);
+params_t * params_new_parse (char * input, size_t len, params_style style);
 
 /**
  * Print an AnxParms object with a given formatting style
  * \param buf The output buffer
  * \param n The maximum number of bytes to write
- * \param params The Params object
+ * \param params The params_t object
  * \param style The formatting style of the generated text.
  * \returns The number of characters printed, not including the trailing '\\0'
  *
@@ -91,71 +91,71 @@ Params * params_new_parse (char * input, size_t len, ParamStyle style);
  *   been written to the output string if enough space had been available.
  * - On non-C99 systems, snprint_params() returns -1 on truncation.
  */
-int params_snprint (char * buf, size_t n, Params * params,
-			ParamStyle style);
+int params_snprint (char * buf, size_t n, params_t * params,
+			params_style style);
 
 /**
- * Retrieve a parameter from an Params object.
- * \param params An Params object
+ * Retrieve a parameter from an params_t object.
+ * \param params An params_t object
  * \param name The parameter name
  * \returns The parameter value
  * \retval NULL No such parameter
  */
-char * params_get (Params * params, char * name);
+char * params_get (params_t * params, char * name);
 
 /**
- * Add a parameter to an Params object.
+ * Add a parameter to an params_t object.
  * If a parameter with the given \a name already exists in \a params,
  * the new \a value replaces the old one.
- * \param params An Params object
+ * \param params An params_t object
  * \param name The parameter name
  * \param value The new parameter value
- * \returns The updated Params object
+ * \returns The updated params_t object
  */
-Params * params_replace (Params * params, char * name, char * value);
+params_t * params_replace (params_t * params, char * name, char * value);
 
 /**
- * Add a parameter to an Params object.
+ * Add a parameter to an params_t object.
  * If a parameter with the given \a name already exists  in \a params,
  * the new \a value is appended to the old one, separated by a comma.
- * \param params An Params object
+ * \param params An params_t object
  * \param name The parameter name
  * \param value The new parameter value
- * \returns The updated Params object
+ * \returns The updated params_t object
  */
-Params * params_append (Params * params, char * name, char * value);
+params_t * params_append (params_t * params, char * name, char * value);
 
 /**
- * Remove a parameter from an Params object.
- * \param params An Params object
+ * Remove a parameter from an params_t object.
+ * \param params An params_t object
  * \param name The parameter name
- * \returns The updated Params object
+ * \returns The updated params_t object
  */
-Params * params_remove (Params * params, char * name);
+params_t * params_remove (params_t * params, char * name);
 
 /**
- * Merge two Params objects. Copies of all parameters in \a src are
+ * Merge two params_t objects. Copies of all parameters in \a src are
  * appended (as for params_append()) to \a dest.
- * \param dest The Params object into which new values are appended
- * \param src An Params object with the new values.
+ * \param dest The params_t object into which new values are appended
+ * \param src An params_t object with the new values.
  * \returns An updated reference to \a dest.
  * \note \a src is not modified by params_merge().
  */
-Params * params_merge (Params * dest, Params * src);
+params_t * params_merge (params_t * dest, params_t * src);
 
 /**
- * Create a new Params object by cloning an existing one.
- * \param params An existing Params object.
- * \returns A new Params object with copied parameters. All names and
+ * Create a new params_t object by cloning an existing one.
+ * \param params An existing params_t object.
+ * \returns A new params_t object with copied parameters. All names and
  *          values in \params are duplicated in the returned object.
  */
-Params * params_clone (Params * params);
+params_t * params_clone (params_t * params);
 
 /**
- * Free an Params object
- * \param params An Params object
+ * Free an params_t object
+ * \param params An params_t object
  * \returns NULL on success
  */
-Params * params_free (Params * params);
+params_t * params_free (params_t * params);
 
 #endif /* __PARAMS_H__ */

@@ -5,8 +5,8 @@
 
 #define FLIM_TEXT "flim flim flim\n"
 
-Params *
-flim_append_headers (Params * response_headers)
+params_t *
+flim_append_headers (params_t * response_headers)
 {
         char length[16];
 

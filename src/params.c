@@ -17,17 +17,17 @@ typedef enum {
   PARAMS_HEADERS = 1,
   PARAMS_METATAGS = 1000,
   PARAMS_PARAMTAGS = 1001
-} ParamStyle;
+} params_style;
 
 typedef struct {
   char * key;
   char * value;
-} Params;
+} params_t;
 
-static Params *
+static params_t *
 param_new (char * key, char * value)
 {
-  Params * p = malloc (sizeof (Params));
+  params_t * p = malloc (sizeof (params_t));
 
   p->key = strdup (key);
   p->value = strdup (value);
@@ -38,11 +38,11 @@ static size_t
 snprint_params_format (char * buf, size_t n, List * params, char * format)
 {
   List * l;
-  Params * p;
+  params_t * p;
   size_t len, total = 0;
 
   for (l = params; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
 
     len = (size_t)snprintf (buf, n, format, p->key, p->value);
 
@@ -65,7 +65,7 @@ snprint_params_format (char * buf, size_t n, List * params, char * format)
 
 int
 params_snprint (char * buf, size_t n, List * params,
-                ParamStyle style)
+                params_style style)
 {
   char * format = NULL;
   size_t len;
@@ -114,11 +114,11 @@ params_snprint (char * buf, size_t n, List * params,
 char *
 params_get (List * params, char * key)
 {
-  Params * p;
+  params_t * p;
   List * l;
 
   for (l = params; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
     if (!strcasecmp (p->key, key)) {
       return p->value;
     }
@@ -130,7 +130,7 @@ params_get (List * params, char * key)
 static List *
 params_add (List * params, char * key, char * value)
 {
-  Params * p = param_new (key, value);
+  params_t * p = param_new (key, value);
 
   return list_append (params, p);
 }
@@ -138,14 +138,14 @@ params_add (List * params, char * key, char * value)
 List *
 params_append (List * params, char * key, char * value)
 {
-  Params * p;
+  params_t * p;
   List * l;
   char * new_value;
 
   if (!key || !value) return params;
 
   for (l = params; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
     if (!strcasecmp (p->key, key)) {
       new_value = malloc (strlen (p->value) + strlen (value) + 2);
       sprintf (new_value, "%s,%s", p->value, value);
@@ -161,13 +161,13 @@ params_append (List * params, char * key, char * value)
 List *
 params_replace (List * params, char * key, char * value)
 {
-  Params * p;
+  params_t * p;
   List * l;
 
   if (!key) return params;
 
   for (l = params; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
     if (!strcasecmp (p->key, key)) {
       free (p->value);
       p->value = strdup (value);
@@ -181,11 +181,11 @@ params_replace (List * params, char * key, char * value)
 List *
 params_merge (List * dest, List * src)
 {
-  Params * p;
+  params_t * p;
   List * l;
   
   for (l = src; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
     dest = params_append (dest, p->key, p->value);
   }
 
@@ -346,7 +346,7 @@ params_new_parse_headers (char * headers, size_t len)
 }
 
 List *
-params_new_parse (char * input, size_t len, ParamStyle style)
+params_new_parse (char * input, size_t len, params_style style)
 {
   switch (style) {
   case PARAMS_QUERY:
@@ -361,7 +361,7 @@ params_new_parse (char * input, size_t len, ParamStyle style)
 static void *
 param_free (void * data)
 {
-  Params * p = (Params *)data;
+  params_t * p = (params_t *)data;
 
   free (p->key);
   free (p->value);
@@ -373,11 +373,11 @@ param_free (void * data)
 List *
 params_remove (List * params, char * key)
 {
-  Params * p;
+  params_t * p;
   List * l;
 
   for (l = params; l; l = l->next) {
-    p = (Params *)l->data;
+    p = (params_t *)l->data;
     if (!strcmp (p->key, key)) {
       params = list_remove (params, l);
       param_free (p);
