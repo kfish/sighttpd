@@ -96,7 +96,6 @@ http_request_parse (char * s, size_t len, http_request * request)
 
         span = strspn (s, crlf);
         if (span > 2) goto fail;
-        
 
         request->original_reqline = strndup (original_reqline, consumed);
         consumed += span;

@@ -18,6 +18,8 @@
 #include "stream.h"
 #include "flim.h"
 
+#define DEBUG
+
 void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
@@ -50,6 +52,7 @@ void respond (int fd, http_request * request, params_t * request_headers)
 
         params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
         write (fd, headers_out, strlen(headers_out));
+        fsync (fd);
 
         log_access (request, request_headers, response_headers);
 
@@ -61,7 +64,9 @@ void respond (int fd, http_request * request, params_t * request_headers)
                 flim_stream_body (fd);
         }
 
+#ifdef DEBUG
         printf ("Finished serving / lost client\n");
+#endif
 }
 
 void * http_response (void *arg)
@@ -70,28 +75,35 @@ void * http_response (void *arg)
         http_request request;
         int fd = * (int *)arg;
 	char s[1024];
-        char * start;
-        static char * cur = NULL;
-        static size_t rem=1024;
+        char * cur;
+        size_t rem=1024, nread, n;
         int init=0;
 
-        if (cur == NULL) cur = s;
+        cur = s;
 
 	/* proc client's requests */
-	while (read(fd, cur, rem) > 0) {
-                if (!init && http_request_parse (cur, rem, &request) > 0) {
-                        start = cur;
+	while ((nread = read(fd, cur, rem)) != 0) {
+                if (n == -1) {
+                        perror ("read");
+                        continue;
+                }
+                if (!init && (n = http_request_parse (cur, rem, &request)) > 0) {
+                        memmove (s, &s[n], nread-n);
                         init = 1;
-                        printf ("Got HTTP method %d, version %d for %s\n", request.method,
-                                request.version, request.path);
+#ifdef DEBUG
+                        printf ("Got HTTP method %d, version %d for %s (consumed %d)\n", request.method,
+                                request.version, request.path, n);
+#endif
+                }
+
+                request_headers = params_new_parse (s, strlen (s), PARAMS_HEADERS);
+                if (request_headers != NULL) {
+                        respond (fd, &request, request_headers);
+                        goto closeit;
                 } else {
-                        request_headers = params_new_parse (start, strlen (start), PARAMS_HEADERS);
-                        if (request_headers != NULL) {
-                                respond (fd, &request, request_headers);
-                                goto closeit;
-                        } else {
-                                cur += strlen (cur);
-                        }
+                        n = strlen (cur);
+                        cur += n;
+                        rem -= n;
                 }
 	}
 

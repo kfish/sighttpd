@@ -71,6 +71,7 @@ stream_stream_body (int fd)
                         printf ("stream_reader: %ld bytes available\n", available);
 #endif
                         n = ringbuffer_writefd (fd, &stream_rb);
+                        fsync (fd);
 #ifdef DEBUG
                         printf ("stream_reader: wrote %ld bytes to socket\n", n);
 #endif
