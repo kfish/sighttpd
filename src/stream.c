@@ -7,6 +7,8 @@
 
 /* #define DEBUG */
 
+#define CONTENT_TYPE "video/mpeg4"
+
 static struct ringbuffer stream_rb;
 static int active=0;
 
@@ -55,7 +57,7 @@ stream_append_headers (params_t * response_headers)
 {
         char length[16];
 
-        response_headers = params_append (response_headers, "Content-Type", "text/plain");
+        response_headers = params_append (response_headers, "Content-Type", CONTENT_TYPE);
 }
 
 int
