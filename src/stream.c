@@ -19,15 +19,11 @@ stream_writer (void * unused)
         active = 1;
 
         while (active) {
-                available = ringbuffer_count_free_bytes (&stream_rb);
-#ifdef DEBUG
-                printf ("stream_writer: %ld bytes available\n", available);
-#endif
-                n = read (STDIN_FILENO, ringbuffer_write_address(&stream_rb), available);
+                n = ringbuffer_readfd (STDIN_FILENO, &stream_rb);
+
 #ifdef DEBUG
                 printf ("stream_writer: read %ld bytes\n", n);
 #endif
-                ringbuffer_write_advance (&stream_rb, n);
         }
 
         return NULL;
@@ -37,8 +33,12 @@ void
 stream_init (void)
 {
 	pthread_t child;
+        unsigned char * data;
+        size_t len = 4096*16;
 
-        ringbuffer_create (&stream_rb, 16);
+        data = malloc (len);
+
+        ringbuffer_init (&stream_rb, data, len);
 	pthread_create(&child, 0,  stream_writer, NULL);
 	pthread_detach(child);
 }
@@ -46,9 +46,8 @@ stream_init (void)
 void
 stream_close (void)
 {
-        printf ("stream_close\n");
         active = 0;
-        ringbuffer_free (&stream_rb);
+        free (stream_rb.data);
 }
 
 params_t *
@@ -65,24 +64,15 @@ stream_stream_body (int fd)
         size_t available;
         size_t n;
 
-        available = ringbuffer_count_bytes (&stream_rb);
-        ringbuffer_read_advance (&stream_rb, available-1);
+        ringbuffer_flush (&stream_rb);
 
         while (active) {
-                available = ringbuffer_count_bytes (&stream_rb);
-                if (available > 0) {
 #ifdef DEBUG
                         printf ("stream_reader: %ld bytes available\n", available);
 #endif
-                        n = write (fd, ringbuffer_read_address (&stream_rb), available);
+                        n = ringbuffer_writefd (fd, &stream_rb);
 #ifdef DEBUG
                         printf ("stream_reader: wrote %ld bytes to socket\n", n);
 #endif
-                        if (n >= 0) {
-                                ringbuffer_read_advance (&stream_rb, n);
-                        } else {
-                                perror ("stream_reader: write");
-                        }
-                }
         }
 }
