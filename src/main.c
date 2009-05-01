@@ -26,6 +26,18 @@ void panic(char *msg);
 
 #define STATUS_OK "HTTP/1.1 200 OK\r\n"
 
+static char * progname;
+
+static void
+usage (const char * progname)
+{
+        //printf ("Usage: %s [options] <port>\n", progname);
+        printf ("Usage: %s <port>\n", progname);
+        printf ("A stream ingress HTTP server.\n");
+        printf ("\n");
+        printf ("Please report bugs to <" PACKAGE_BUGREPORT ">\n");
+}
+
 void respond (int fd, http_request * request, params_t * request_headers)
 {
         params_t * response_headers = NULL;
@@ -114,27 +126,29 @@ closeit:
 	return 0;		/* terminate the thread */
 }
 
-int main(int count, char *args[])
+int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
 	int sd, port;
 
-	if (count != 2) {
-		printf("usage: %s <protocol or portnum>\n", args[0]);
-		exit(0);
+        progname = argv[0];
+
+	if (argc != 2) {
+                usage (progname);
+		return (1);
 	}
 
 	/* Get server's IP and standard service connection* */
-	if (!isdigit(args[1][0])) {
-		struct servent *srv = getservbyname(args[1], "tcp");
+	if (!isdigit(argv[1][0])) {
+		struct servent *srv = getservbyname(argv[1], "tcp");
 
 		if (srv == NULL)
-			panic(args[1]);
+			panic(argv[1]);
 
 		printf("%s: port=%d\n", srv->s_name, ntohs(srv->s_port));
 		port = srv->s_port;
 	} else {
-		port = htons(atoi(args[1]));
+		port = htons(atoi(argv[1]));
 	}
 
 	/* Create socket * */
