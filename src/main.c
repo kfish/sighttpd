@@ -9,6 +9,7 @@
 #include <resolv.h>
 #include <pthread.h>
 #include <netdb.h>
+#include <signal.h>
 
 #include "params.h"
 #include "http-reqline.h"
@@ -179,6 +180,9 @@ int main(int argc, char *argv[])
                 /* set thread create attributes */
                 pthread_attr_init(&attr);
                 pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+                /* Ignore SIGPIPE, handle client disconnect in processing threads */
+                signal(SIGPIPE, SIG_IGN);
 
                 log_open ();
 

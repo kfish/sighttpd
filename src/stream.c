@@ -24,7 +24,7 @@ stream_writer (void * unused)
                 n = ringbuffer_readfd (STDIN_FILENO, &stream_rb);
 
 #ifdef DEBUG
-                printf ("stream_writer: read %ld bytes\n", n);
+                if (n!=0) printf ("stream_writer: read %ld bytes\n", n);
 #endif
         }
 
@@ -70,12 +70,18 @@ stream_stream_body (int fd)
 
         while (active) {
 #ifdef DEBUG
-                        printf ("stream_reader: %ld bytes available\n", available);
+                        if (available != 0) printf ("stream_reader: %ld bytes available\n", available);
 #endif
                         n = ringbuffer_writefd (fd, &stream_rb);
+                        if (n == -1) {
+                                break;
+                        }
+                        
                         fsync (fd);
 #ifdef DEBUG
-                        printf ("stream_reader: wrote %ld bytes to socket\n", n);
+                        if (n!=0) printf ("stream_reader: wrote %ld bytes to socket\n", n);
 #endif
         }
+
+        return 0;
 }

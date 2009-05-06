@@ -111,14 +111,20 @@ ssize_t ringbuffer_writefd(int fd, struct ringbuffer *rbuf)
 	split = (rbuf->pread + len > rbuf->size) ? rbuf->size - rbuf->pread : 0;
 	if (split > 0) {
                 n = write (fd, rbuf->data+rbuf->pread, split);
-                if (n > 0) {
+                if (n == -1) {
+                        return -1;
+                } else if (n > 0) {
 		        todo -= n;
 	                rbuf->pread = (rbuf->pread + n) % rbuf->size;
                 }
 	}
+
 	n = write (fd, rbuf->data+rbuf->pread, todo);
-        if (n > 0)
+        if (n == -1) {
+                return -1;
+        } else if (n > 0) {
 	        rbuf->pread = (rbuf->pread + n) % rbuf->size;
+        }
 
 	return len;
 }
