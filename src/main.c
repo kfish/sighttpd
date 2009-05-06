@@ -174,6 +174,11 @@ int main(int argc, char *argv[])
 		socklen_t size;
 		struct sockaddr gotcha;
 		pthread_t child;
+                pthread_attr_t attr;
+
+                /* set thread create attributes */
+                pthread_attr_init(&attr);
+                pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
                 log_open ();
 
@@ -187,8 +192,7 @@ int main(int argc, char *argv[])
 			if (ad == -1) {
 				perror("accept");
 			} else {
-				pthread_create(&child, 0,  http_response , &ad);	/* start thread */
-				pthread_detach(child);	/* don't track it */
+				pthread_create(&child, &attr,  http_response , &ad);	/* start thread */
 			}
 		}
 
