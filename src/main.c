@@ -99,6 +99,9 @@ void * http_response (void *arg)
                 if (n == -1) {
                         perror ("read");
                         continue;
+                } else if (nread < 1024) {
+                        /* NUL-terminate input buffer */
+                        cur[nread] = '\0';
                 }
                 if (!init && (n = http_request_parse (cur, rem, &request)) > 0) {
                         memmove (s, &s[n], nread-n);
