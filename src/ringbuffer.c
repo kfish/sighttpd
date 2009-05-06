@@ -24,13 +24,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
+#include <string.h>
 //#include <pthread.h>
 
 #include "ringbuffer.h"
-
-#define PKT_READY 0
-#define PKT_DISPOSED 1
-
 
 void ringbuffer_init(struct ringbuffer *rbuf, void *data, size_t len)
 {
@@ -139,14 +136,20 @@ ssize_t ringbuffer_readfd(int fd, struct ringbuffer *rbuf)
 
 	if (split > 0) {
                 n = read (fd, rbuf->data+rbuf->pwrite, split);
-                if (n > 0) {
+                if (n == -1) {
+                        return -1;
+                } else if (n > 0) {
 		        todo -= n;
 	                rbuf->pwrite = (rbuf->pwrite + n) % rbuf->size;
                 }
 	}
+
         n = read (fd, rbuf->data+rbuf->pwrite, todo);
-        if (n > 0)
+        if (n == -1) {
+                return -1;
+        } else if (n > 0) {
 	        rbuf->pwrite = (rbuf->pwrite + n) % rbuf->size;
+        }
 
 	return len;
 }
