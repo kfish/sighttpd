@@ -6,6 +6,7 @@ noinst_HEADERS = \
         params.h \
         http-date.h \
         http-reqline.h \
+        http-response.h \
         ringbuffer.h \
         log.h \
         stream.h \
@@ -19,6 +20,7 @@ sighttpd_SOURCES = \
 	params.c \
         http-date.c \
         http-reqline.c \
+        http-response.c \
         ringbuffer.c \
         log.c \
         stream.c \
