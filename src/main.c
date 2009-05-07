@@ -19,7 +19,7 @@
 #include "stream.h"
 #include "flim.h"
 
-#define DEBUG
+/* #define DEBUG */
 
 void panic(char *msg);
 
