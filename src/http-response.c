@@ -9,14 +9,13 @@
 
 #include "params.h"
 #include "http-reqline.h"
+#include "http-status.h"
 #include "log.h"
 #include "status.h"
 #include "stream.h"
 #include "flim.h"
 
 /* #define DEBUG */
-
-#define STATUS_OK "HTTP/1.1 200 OK\r\n"
 
 static void
 respond (int fd, http_request * request, params_t * request_headers)
