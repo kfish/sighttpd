@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "http-status.h"
 
@@ -130,4 +131,38 @@ http_status_line (http_status status)
                 return NULL;
                 break;
         }
+}
+
+#define HTTP_STATUS_TMPL \
+  "<html><head><title>%s</title></head><body><h1>%s</h1></body></html>\r\n"
+
+params_t *
+http_status_append_headers (params_t * response_headers, http_status status)
+{
+        char length[16];
+        const char * status_line;
+        char buf[1024];
+        int n;
+
+        response_headers = params_append (response_headers, "Content-Type", "text/html");
+
+        n = strlen (http_status_line(status));
+        snprintf (length, 16, "%d", strlen(HTTP_STATUS_TMPL)-4 + (n*2));
+        response_headers = params_append (response_headers, "Content-Length", length);
+
+        return response_headers;
+}
+
+int
+http_status_stream_body (int fd, http_status status)
+{
+        const char * status_line;
+        char buf[1024];
+        int n;
+
+        status_line = http_status_line (status);
+
+        n = snprintf (buf, 1024, HTTP_STATUS_TMPL,
+                      status_line, status_line);
+        return write (fd, buf, n);
 }

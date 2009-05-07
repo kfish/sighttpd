@@ -25,24 +25,32 @@ respond (int fd, http_request * request, params_t * request_headers)
         const char * status_line;
         int status_request=0;
         int stream_request=0;
+        int flim_request=0;
 
-        status_line = http_status_line (HTTP_STATUS_OK);
-        write (fd, status_line, strlen(status_line));
 
         status_request = !strncmp (request->path, "/status", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
+        flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         httpdate_snprint (date, 256, time(NULL));
         response_headers = params_append (response_headers, "Date", date);
         response_headers = params_append (response_headers, "Server", "Sighttpd/" VERSION);
 
         if (status_request) {
+                status_line = http_status_line (HTTP_STATUS_OK);
                 response_headers = status_append_headers (response_headers);
         } else if (stream_request) {
+                status_line = http_status_line (HTTP_STATUS_OK);
                 response_headers = stream_append_headers (response_headers);
-        } else {
+        } else if (flim_request) {
+                status_line = http_status_line (HTTP_STATUS_OK);
                 response_headers = flim_append_headers (response_headers);
+        } else {
+                status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
+                response_headers = http_status_append_headers (response_headers, HTTP_STATUS_NOT_FOUND);
         }
+
+        write (fd, status_line, strlen(status_line));
 
         params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
         write (fd, headers_out, strlen(headers_out));
@@ -54,8 +62,10 @@ respond (int fd, http_request * request, params_t * request_headers)
                 status_stream_body (fd);
         } else if (stream_request) {
                 stream_stream_body (fd);
-        } else {
+        } else if (flim_request) {
                 flim_stream_body (fd);
+        } else {
+                http_status_stream_body (fd, HTTP_STATUS_NOT_FOUND);
         }
 
 #ifdef DEBUG

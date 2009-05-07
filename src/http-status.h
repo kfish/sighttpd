@@ -1,6 +1,8 @@
 #ifndef __HTTP_STATUS_H__
 #define __HTTP_STATUS_H__
 
+#include "params.h"
+
 typedef enum {
         HTTP_STATUS_CONTINUE = 100,
         HTTP_STATUS_SWITCHING_PROTOCOLS = 101,
@@ -46,5 +48,10 @@ typedef enum {
 
 const char *
 http_status_line (http_status status);
+
+params_t * status_append_headers (params_t * response_headers);
+
+int
+http_status_stream_body (int fd, http_status status);
 
 #endif /* __HTTP_STATUS_H__ */
