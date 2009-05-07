@@ -63,16 +63,13 @@ stream_append_headers (params_t * response_headers)
 int
 stream_stream_body (int fd)
 {
-        size_t available;
         size_t n;
+        int rd;
 
-        ringbuffer_flush (&stream_rb);
+        rd = ringbuffer_open (&stream_rb);
 
         while (active) {
-#ifdef DEBUG
-                        if (available != 0) printf ("stream_reader: %ld bytes available\n", available);
-#endif
-                        n = ringbuffer_writefd (fd, &stream_rb);
+                        n = ringbuffer_writefd (fd, &stream_rb, rd);
                         if (n == -1) {
                                 break;
                         }
@@ -82,6 +79,8 @@ stream_stream_body (int fd)
                         if (n!=0) printf ("stream_reader: wrote %ld bytes to socket\n", n);
 #endif
         }
+
+        ringbuffer_close (&stream_rb, rd);
 
         return 0;
 }

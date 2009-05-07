@@ -31,15 +31,19 @@
 
 //#include <pthread.h>
 
+#define MAX_READERS 16
+
 struct ringbuffer {
+	ssize_t           pread[MAX_READERS];
+        ssize_t           min_pread;
+	ssize_t           pwrite;
 	unsigned char    *data;
 	ssize_t           size;
-	ssize_t           pread;
-	ssize_t           pwrite;
-	int               error;
 
+        unsigned int      readers; /* bitmask */
+
+        pthread_mutex_t   mutex;
 #if 0
-        pthread_mutex_t  *mutex;
         pthread_cond_t   *cond;
 #endif
 };
@@ -76,14 +80,20 @@ struct ringbuffer {
 /* initialize ring buffer, lock and queue */
 extern void ringbuffer_init(struct ringbuffer *rbuf, void *data, size_t len);
 
+/* Returns a read descriptor */
+extern int ringbuffer_open (struct ringbuffer *rbuf);
+
+/* Close a read descriptor */
+extern void ringbuffer_close (struct ringbuffer *rbuf, int readd);
+
 /* test whether buffer is empty */
-extern int ringbuffer_empty(struct ringbuffer *rbuf);
+extern int ringbuffer_empty(struct ringbuffer *rbuf, int readd);
 
 /* return the number of free bytes in the buffer */
 extern ssize_t ringbuffer_free(struct ringbuffer *rbuf);
 
 /* return the number of bytes waiting in the buffer */
-extern ssize_t ringbuffer_avail(struct ringbuffer *rbuf);
+extern ssize_t ringbuffer_avail(struct ringbuffer *rbuf, int readd);
 
 
 /*
@@ -96,10 +106,7 @@ extern void ringbuffer_reset(struct ringbuffer *rbuf);
 /* read routines & macros */
 /* ---------------------- */
 /* flush buffer */
-extern void ringbuffer_flush(struct ringbuffer *rbuf);
-
-/* flush buffer protected by spinlock and wake-up waiting task(s) */
-extern void ringbuffer_flush_spinlock_wakeup(struct ringbuffer *rbuf);
+extern void ringbuffer_flush(struct ringbuffer *rbuf, int readd);
 
 /* peek at byte <offs> in the buffer */
 #define RINGBUFFER_PEEK(rbuf,offs)	\
@@ -110,16 +117,15 @@ extern void ringbuffer_flush_spinlock_wakeup(struct ringbuffer *rbuf);
 			(rbuf)->pread=((rbuf)->pread+(num))%(rbuf)->size
 
 
-ssize_t ringbuffer_writefd(int fd, struct ringbuffer *rbuf);
-ssize_t ringbuffer_readfd(int, struct ringbuffer *rbuf);
+/* Write to a file descriptor, reading from ringbuffer readd */
+ssize_t ringbuffer_writefd(int fd, struct ringbuffer *rbuf, int readd);
 
 /*
 ** read <len> bytes from ring buffer into <buf>
-** <usermem> specifies whether <buf> resides in user space
 ** returns number of bytes transferred or -EFAULT
 */
-extern ssize_t ringbuffer_read(struct ringbuffer *rbuf, unsigned char *buf,
-                               size_t len);
+extern ssize_t ringbuffer_read(struct ringbuffer *rbuf, int readd,
+                               unsigned char *buf, size_t len);
 
 
 /* write routines & macros */
@@ -128,6 +134,10 @@ extern ssize_t ringbuffer_read(struct ringbuffer *rbuf, unsigned char *buf,
 #define RINGBUFFER_WRITE_BYTE(rbuf,byte)	\
 			{ (rbuf)->data[(rbuf)->pwrite]=(byte); \
 			(rbuf)->pwrite=((rbuf)->pwrite+1)%(rbuf)->size; }
+
+/* Read from a file descriptor, writing into the ringbuffer */
+ssize_t ringbuffer_readfd(int fd, struct ringbuffer *rbuf);
+
 /*
 ** write <len> bytes to ring buffer
 ** <usermem> specifies whether <buf> resides in user space
