@@ -10,11 +10,12 @@
 #include <pthread.h>
 #include <netdb.h>
 #include <signal.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 #include "params.h"
 #include "http-reqline.h"
 #include "log.h"
-
 #include "status.h"
 #include "stream.h"
 #include "flim.h"
@@ -93,6 +94,8 @@ void * http_response (void *arg)
         int init=0;
 
         cur = s;
+
+        setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, NULL, 0);
 
 	/* proc client's requests */
 	while ((nread = read(fd, cur, rem)) != 0) {

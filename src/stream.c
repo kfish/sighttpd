@@ -36,7 +36,7 @@ stream_init (void)
 {
 	pthread_t child;
         unsigned char * data;
-        size_t len = 4096*16;
+        size_t len = 4096*16*32;
 
         data = malloc (len);
 
