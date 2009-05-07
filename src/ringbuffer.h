@@ -119,7 +119,7 @@ ssize_t ringbuffer_readfd(int, struct ringbuffer *rbuf);
 ** returns number of bytes transferred or -EFAULT
 */
 extern ssize_t ringbuffer_read(struct ringbuffer *rbuf, unsigned char *buf,
-				   size_t len, int usermem);
+                               size_t len);
 
 
 /* write routines & macros */

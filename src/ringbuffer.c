@@ -154,7 +154,7 @@ ssize_t ringbuffer_readfd(int fd, struct ringbuffer *rbuf)
 	return len;
 }
 
-ssize_t ringbuffer_read(struct ringbuffer *rbuf, unsigned char *buf, size_t len, int usermem)
+ssize_t ringbuffer_read(struct ringbuffer *rbuf, unsigned char *buf, size_t len)
 {
 	size_t todo = len;
 	size_t split;
