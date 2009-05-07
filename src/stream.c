@@ -7,7 +7,7 @@
 
 /* #define DEBUG */
 
-#define CONTENT_TYPE "video/mpeg4"
+#define CONTENT_TYPE "video/mp4"
 
 static struct ringbuffer stream_rb;
 static int active=0;
