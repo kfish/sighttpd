@@ -49,7 +49,8 @@ typedef enum {
 const char *
 http_status_line (http_status status);
 
-params_t * status_append_headers (params_t * response_headers);
+params_t *
+http_status_append_headers (params_t * response_headers, http_status status);
 
 int
 http_status_stream_body (int fd, http_status status);

@@ -17,46 +17,66 @@
 
 /* #define DEBUG */
 
-static void
-respond (int fd, http_request * request, params_t * request_headers)
+static params_t *
+response_headers_new (void)
 {
         params_t * response_headers = NULL;
-        char date[256], headers_out[1024];
-        const char * status_line;
-        int status_request=0;
-        int stream_request=0;
-        int flim_request=0;
-
-
-        status_request = !strncmp (request->path, "/status", 7);
-        stream_request = !strncmp (request->path, "/stream", 7);
-        flim_request = !strncmp (request->path, "/flim.txt", 9);
+        char date[256];
 
         httpdate_snprint (date, 256, time(NULL));
         response_headers = params_append (response_headers, "Date", date);
         response_headers = params_append (response_headers, "Server", "Sighttpd/" VERSION);
 
-        if (status_request) {
-                status_line = http_status_line (HTTP_STATUS_OK);
-                response_headers = status_append_headers (response_headers);
-        } else if (stream_request) {
-                status_line = http_status_line (HTTP_STATUS_OK);
-                response_headers = stream_append_headers (response_headers);
-        } else if (flim_request) {
-                status_line = http_status_line (HTTP_STATUS_OK);
-                response_headers = flim_append_headers (response_headers);
-        } else {
-                status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
-                response_headers = http_status_append_headers (response_headers, HTTP_STATUS_NOT_FOUND);
-        }
+        return response_headers;
+}
 
-        write (fd, status_line, strlen(status_line));
+static void
+params_writefd (int fd, params_t * params)
+{
+        char headers_out[1024];
 
-        params_snprint (headers_out, 1024, response_headers, PARAMS_HEADERS);
+        params_snprint (headers_out, 1024, params, PARAMS_HEADERS);
         write (fd, headers_out, strlen(headers_out));
         fsync (fd);
+}
 
-        log_access (request, request_headers, response_headers);
+static void
+respond_get_head (http_request * request, params_t * request_headers,
+                  const char ** status_line, params_t ** response_headers)
+{
+        int status_request=0;
+        int stream_request=0;
+        int flim_request=0;
+
+        status_request = !strncmp (request->path, "/status", 7);
+        stream_request = !strncmp (request->path, "/stream", 7);
+        flim_request = !strncmp (request->path, "/flim.txt", 9);
+
+        if (status_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = status_append_headers (*response_headers);
+        } else if (stream_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = stream_append_headers (*response_headers);
+        } else if (flim_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = flim_append_headers (*response_headers);
+        } else {
+                *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
+                *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
+        }
+}
+
+static void
+respond_get_body (int fd, http_request * request, params_t * request_headers)
+{
+        int status_request=0;
+        int stream_request=0;
+        int flim_request=0;
+
+        status_request = !strncmp (request->path, "/status", 7);
+        stream_request = !strncmp (request->path, "/stream", 7);
+        flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
                 status_stream_body (fd);
@@ -66,6 +86,42 @@ respond (int fd, http_request * request, params_t * request_headers)
                 flim_stream_body (fd);
         } else {
                 http_status_stream_body (fd, HTTP_STATUS_NOT_FOUND);
+        }
+}
+
+static void
+respond_method_not_allowed (const char ** status_line, params_t ** response_headers)
+{
+        *status_line = http_status_line (HTTP_STATUS_METHOD_NOT_ALLOWED);
+        *response_headers = params_append (*response_headers, "Allow", "GET");
+        *response_headers = params_append (*response_headers, "Allow", "HEAD");
+}
+
+static void
+respond (int fd, http_request * request, params_t * request_headers)
+{
+        params_t * response_headers;
+        const char * status_line;
+
+        response_headers = response_headers_new ();
+
+        switch (request->method) {
+        case HTTP_METHOD_HEAD:
+        case HTTP_METHOD_GET:
+                respond_get_head (request, request_headers, &status_line, &response_headers);
+                break;
+        default:
+                respond_method_not_allowed (&status_line, &response_headers);
+                break;
+        }
+
+        write (fd, status_line, strlen(status_line));
+        params_writefd (fd, response_headers);
+
+        log_access (request, request_headers, response_headers);
+
+        if (request->method == HTTP_METHOD_GET) {
+                respond_get_body (fd, request, request_headers);
         }
 
 #ifdef DEBUG
