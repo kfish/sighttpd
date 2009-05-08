@@ -44,7 +44,10 @@ ssize_t ringbuffer_avail(struct ringbuffer *rbuf, int readd)
 static void ringbuffer_update_min(struct ringbuffer *rbuf)
 {
 	int i;
-	ssize_t avail, min_avail = 0, min_pread;
+	ssize_t avail, min_avail = -1, min_pread;
+
+        if (rbuf->readers == 0)
+                return;
 
 	pthread_mutex_lock(&rbuf->mutex);
 	for (i = 0; i < MAX_READERS; i++) {
@@ -132,9 +135,13 @@ ssize_t ringbuffer_free(struct ringbuffer * rbuf)
 {
 	ssize_t free;
 
-	free = rbuf->min_pread - rbuf->pwrite;
-	if (free <= 0)
+        if (rbuf->readers == 0) {
+                free = rbuf->size;
+        } else {
+	        free = rbuf->min_pread - rbuf->pwrite;
+	        if (free <= 0)
 		free += rbuf->size;
+        }
 	return free - 1;
 }
 
@@ -147,32 +154,41 @@ void ringbuffer_flush(struct ringbuffer *rbuf, int readd)
 ssize_t ringbuffer_writefd(int fd, struct ringbuffer *rbuf, int readd)
 {
 	size_t todo, len;
-	size_t split, n;
+	size_t split, n, nwritten=0;
 
 	todo = len = ringbuffer_avail(rbuf, readd);
+        if (len == 0)
+                return 0;
+
 	split =
 	    (rbuf->pread[readd] + len >
 	     rbuf->size) ? rbuf->size - rbuf->pread[readd] : 0;
 	if (split > 0) {
+                printf ("ringbuffer_writefd: split %ld\n", split);
 		n = write(fd, rbuf->data + rbuf->pread[readd], split);
 		if (n == -1) {
 			return -1;
 		} else if (n > 0) {
 			todo -= n;
+                        nwritten += n;
 			rbuf->pread[readd] =
 			    (rbuf->pread[readd] + n) % rbuf->size;
 		}
 	}
 
-	n = write(fd, rbuf->data + rbuf->pread[readd], todo);
-	if (n == -1) {
-		return -1;
-	} else if (n > 0) {
-		rbuf->pread[readd] = (rbuf->pread[readd] + n) % rbuf->size;
-		ringbuffer_update_min(rbuf);
-	}
+        if (split == 0 || nwritten == split) {
+		n = write(fd, rbuf->data + rbuf->pread[readd], todo);
+		if (n == -1) {
+			return -1;
+		} else if (n > 0) {
+               		nwritten += n;
+			rbuf->pread[readd] = (rbuf->pread[readd] + n) % rbuf->size;
+		}
+        }
 
-	return len;
+	ringbuffer_update_min(rbuf);
+
+	return nwritten;
 }
 
 ssize_t ringbuffer_readfd(int fd, struct ringbuffer * rbuf)
