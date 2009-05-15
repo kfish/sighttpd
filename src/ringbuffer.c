@@ -164,7 +164,6 @@ ssize_t ringbuffer_writefd(int fd, struct ringbuffer *rbuf, int readd)
 	    (rbuf->pread[readd] + len >
 	     rbuf->size) ? rbuf->size - rbuf->pread[readd] : 0;
 	if (split > 0) {
-                printf ("ringbuffer_writefd: split %ld\n", split);
 		n = write(fd, rbuf->data + rbuf->pread[readd], split);
 		if (n == -1) {
 			return -1;
