@@ -127,6 +127,25 @@ params_get (list_t * params, char * key)
   return NULL;
 }
 
+typedef int (*params_func) (char * key, char * value, void * user_data);
+
+int
+params_foreach (list_t * params, params_func func, void * user_data)
+{
+  params_t * p;
+  list_t * l;
+  int ret;
+
+  for (l = params; l; l = l->next) {
+    p = (params_t *)l->data;
+    if ((ret = func (p->key, p->value, user_data)) != 0) {
+      return ret;
+   }
+  }
+
+  return 0;
+}
+
 static list_t *
 params_add (list_t * params, char * key, char * value)
 {

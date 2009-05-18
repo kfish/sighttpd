@@ -67,6 +67,15 @@ typedef enum {
 } params_style;
 
 /**
+ * This is the signature of a callback function for params_foreach().
+ * \param key The parameter name.
+ * \param value The value of that parameter
+ * \param user_data A generic pointer you have provided to params_foreach().
+ * \returns 0 to continue, non-zero to instruct params_foreach() to stop.
+ */
+typedef int (*params_func) (char * key, char * value, void * user_data);
+
+/**
  * Create a new AnxParms object by parsing text input of a given format
  * \param input The text to parse
  * \param len Length in bytes of \a input
@@ -102,6 +111,18 @@ int params_snprint (char * buf, size_t n, params_t * params,
  * \retval NULL No such parameter
  */
 char * params_get (params_t * params, char * name);
+
+/**
+ * Run a params_func on each element of a params_t object.
+ * \param params A params_t object
+ * \param func A params_func callback
+ * \param user_data Arbitrary data you wish to pass to your callback
+ * \retval 0 All parameters were processed.
+ * \returns non-zero if any instance of the callback returned non-zero,
+ * in which case params_foreach() is terminated and the last callback
+ * result is returned.
+ */
+int params_foreach (params_t * params, params_func func, void * user_data);
 
 /**
  * Add a parameter to an params_t object.
