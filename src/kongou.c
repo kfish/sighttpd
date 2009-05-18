@@ -117,7 +117,7 @@ kongou_set_param (char * key, char * value, void * user_data)
         struct kongou_field * field = NULL;
         char buf[1024], cmd[64];
         size_t n;
-        int val;
+        int val, ret;
 
         if (key != NULL) {
                 field = kongou_get_field (control, key);
@@ -132,12 +132,24 @@ kongou_set_param (char * key, char * value, void * user_data)
         if (val < field->range_min || val > field->range_max) {
                 n = snprintf (buf, 1024, "<li>%s: Value 0x%04x out of range (0x%04x - 0x%04x)\n</li>",
                               key, val, field->range_min, field->range_max);
+                write (fd, buf, n);
         } else {
                 n = snprintf (cmd, 64, "kgctrl set %d %d %d", TTYSC, field->no, val);
-                n = snprintf (buf, 1024, "<li>Set %s to %d: <tt>%s</tt></li>\n", key, val, cmd);
+                n = snprintf (buf, 1024, "<li>Set %s to %d: <tt>%s</tt>", key, val, cmd);
+                write (fd, buf, n);
+#ifndef DEBUG
+                ret = system (cmd);
+                if (ret == -1) {
+                        n = snprintf (buf, 1024, ": ERROR");
+                } else {
+                        n = snprintf (buf, 1024, ": OK");
+                }
+                write (fd, buf, n);
+#endif
+                n = snprintf (buf, 1024, "</li>\n");
+                write (fd, buf, n);
         }
 
-        write (fd, buf, n);
 
         return 0;
 }
@@ -165,9 +177,7 @@ kongou_stream_body (int fd, char * path)
         h.control = &control;
         h.fd = fd;
 
-        if (q == NULL) {
-                kongou_field_entries (fd, &control);
-        } else {
+        if (q != NULL) {
                 q++;
                 query = params_new_parse (q, strlen(q), PARAMS_QUERY);
  
@@ -176,9 +186,11 @@ kongou_stream_body (int fd, char * path)
 
                 params_foreach (query, kongou_set_param, &h);
 
-                n = snprintf (buf, 1024, "</ul>");
+                n = snprintf (buf, 1024, "</ul><hr/>");
                 write (fd, buf, n);
         }
+
+        kongou_field_entries (fd, &control);
 
         n = snprintf (buf, 1024, KONGOU_FOOT);
         write (fd, buf, n);
