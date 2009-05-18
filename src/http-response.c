@@ -48,11 +48,13 @@ respond_get_head (http_request * request, params_t * request_headers,
         int status_request=0;
         int uiomux_request=0;
         int stream_request=0;
+        int kongou_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
+        kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
@@ -61,6 +63,9 @@ respond_get_head (http_request * request, params_t * request_headers,
         } else if (uiomux_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = uiomux_append_headers (*response_headers);
+        } else if (kongou_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = kongou_append_headers (*response_headers);
         } else if (stream_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = stream_append_headers (*response_headers);
@@ -79,17 +84,21 @@ respond_get_body (int fd, http_request * request, params_t * request_headers)
         int status_request=0;
         int uiomux_request=0;
         int stream_request=0;
+        int kongou_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
+        kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
                 status_stream_body (fd);
         } else if (uiomux_request) {
                 uiomux_stream_body (fd);
+        } else if (kongou_request) {
+                kongou_stream_body (fd);
         } else if (stream_request) {
                 stream_stream_body (fd);
         } else if (flim_request) {

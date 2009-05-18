@@ -12,6 +12,7 @@ noinst_HEADERS = \
         log.h \
         stream.h \
         flim.h \
+	kongou.h \
         status.h \
         uiomux.h \
         tests.h
@@ -28,6 +29,7 @@ sighttpd_SOURCES = \
         log.c \
         stream.c \
         flim.c \
+	kongou.c \
         status.c \
         uiomux.c
 
