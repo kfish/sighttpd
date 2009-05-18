@@ -12,6 +12,7 @@
 #include "http-status.h"
 #include "log.h"
 #include "status.h"
+#include "uiomux.h"
 #include "stream.h"
 #include "flim.h"
 
@@ -45,16 +46,21 @@ respond_get_head (http_request * request, params_t * request_headers,
                   const char ** status_line, params_t ** response_headers)
 {
         int status_request=0;
+        int uiomux_request=0;
         int stream_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
+        uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = status_append_headers (*response_headers);
+        } else if (uiomux_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = uiomux_append_headers (*response_headers);
         } else if (stream_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = stream_append_headers (*response_headers);
@@ -71,15 +77,19 @@ static void
 respond_get_body (int fd, http_request * request, params_t * request_headers)
 {
         int status_request=0;
+        int uiomux_request=0;
         int stream_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
+        uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream_request = !strncmp (request->path, "/stream", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
                 status_stream_body (fd);
+        } else if (uiomux_request) {
+                uiomux_stream_body (fd);
         } else if (stream_request) {
                 stream_stream_body (fd);
         } else if (flim_request) {

@@ -13,6 +13,7 @@ noinst_HEADERS = \
         stream.h \
         flim.h \
         status.h \
+        uiomux.h \
         tests.h
 
 sighttpd_SOURCES = \
@@ -27,7 +28,8 @@ sighttpd_SOURCES = \
         log.c \
         stream.c \
         flim.c \
-        status.c
+        status.c \
+        uiomux.c
 
 sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 
