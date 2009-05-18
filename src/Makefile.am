@@ -54,6 +54,7 @@ noinst_HEADERS = \
 	$(http_headers) \
         log.h \
         stream.h \
+	xini.h \
         flim.h \
 	kongou.h \
         status.h \
@@ -66,6 +67,8 @@ sighttpd_SOURCES = \
 	main.c \
         log.c \
         stream.c \
+	xini.c \
+	config.c \
         flim.c \
 	kongou.c \
         status.c \
@@ -76,7 +79,9 @@ sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 # Unit tests
 test: check
 
-TESTS = $(ds_tests) $(http_tests)
+TESTS = $(ds_tests) $(http_tests) xini-test
 
 noinst_PROGRAMS = $(TESTS)
+
+xini_test_SOURCES = xini.c xini-test.c
 
