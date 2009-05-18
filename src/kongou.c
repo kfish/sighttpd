@@ -76,18 +76,45 @@ kongou_append_headers (params_t * response_headers)
         response_headers = params_append (response_headers, "Content-Type", "text/html");
 }
 
+int
+kongou_field_entries (int fd, struct kongou_control * control)
+{
+  struct kongou_field * field;
+  char buf[1024];
+  size_t n;
+  int i;
+
+  n = snprintf (buf, 1024, "<form action=\"/kongou.html\" method=\"GET\">\n<table>\n");
+  write (fd, buf, n);
+
+  for (i=0; i<MAX_FIELD; i++) {
+    field = &control->fields[i];
+
+    if (field->name != NULL) {
+        n = snprintf (buf, 1024, "<tr><th>%s</th><td><input name=\"%s\"/></td></tr>\n",
+                      field->name, field->name);
+        write (fd, buf, n);
+    }
+  }
+
+  n = snprintf (buf, 1024, "</table><input type=\"submit\" value=\"Set\"></form>\n");
+  write (fd, buf, n);
+
+  return 0;
+}
+
 struct handle_data {
         struct kongou_control * control;
         int fd;
 };
 
 int
-kongou_handle_param (char * key, char * value, void * user_data)
+kongou_set_param (char * key, char * value, void * user_data)
 {
         struct handle_data * h = (struct handle_data *)user_data;
         struct kongou_control * control = h->control;
         int fd = h->fd;
-        struct kongou_field * field;
+        struct kongou_field * field = NULL;
         char buf[1024], cmd[64];
         size_t n;
         int val;
@@ -96,11 +123,14 @@ kongou_handle_param (char * key, char * value, void * user_data)
                 field = kongou_get_field (control, key);
         }
 
-        if (value != NULL)
-                val = atoi(value);
+        /* Ignore unknown or unset fields */
+        if (field == NULL || value == NULL)
+                return 0;
+
+        val = atoi(value);
 
         if (val < field->range_min || val > field->range_max) {
-                n = snprintf (buf, 1024, "%s: Value 0x%04x out of range (0x%04x - 0x%04x)\n",
+                n = snprintf (buf, 1024, "<li>%s: Value 0x%04x out of range (0x%04x - 0x%04x)\n</li>",
                               key, val, field->range_min, field->range_max);
         } else {
                 n = snprintf (cmd, 64, "kgctrl set %d %d %d", TTYSC, field->no, val);
@@ -132,9 +162,11 @@ kongou_stream_body (int fd, char * path)
         n = snprintf (buf, 1024, KONGOU_HEAD);
         write (fd, buf, n);
 
+        h.control = &control;
+        h.fd = fd;
+
         if (q == NULL) {
-                n = snprintf (buf, 1024, "kongou!! %s\n", path);
-                write (fd, buf, n);
+                kongou_field_entries (fd, &control);
         } else {
                 q++;
                 query = params_new_parse (q, strlen(q), PARAMS_QUERY);
@@ -142,9 +174,7 @@ kongou_stream_body (int fd, char * path)
                 n = snprintf (buf, 1024, "<ul>");
                 write (fd, buf, n);
 
-                h.control = &control;
-                h.fd = fd;
-                params_foreach (query, kongou_handle_param, &h);
+                params_foreach (query, kongou_set_param, &h);
 
                 n = snprintf (buf, 1024, "</ul>");
                 write (fd, buf, n);
