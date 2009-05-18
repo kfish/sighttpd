@@ -98,7 +98,7 @@ respond_get_body (int fd, http_request * request, params_t * request_headers)
         } else if (uiomux_request) {
                 uiomux_stream_body (fd);
         } else if (kongou_request) {
-                kongou_stream_body (fd);
+                kongou_stream_body (fd, request->path);
         } else if (stream_request) {
                 stream_stream_body (fd);
         } else if (flim_request) {
