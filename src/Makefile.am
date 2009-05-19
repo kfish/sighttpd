@@ -54,6 +54,7 @@ noinst_HEADERS = \
 	$(http_headers) \
         log.h \
         stream.h \
+	shell.h \
 	xini.h \
         flim.h \
 	kongou.h \
@@ -67,6 +68,7 @@ sighttpd_SOURCES = \
 	main.c \
         log.c \
         stream.c \
+	shell.c \
 	xini.c \
 	config.c \
         flim.c \
