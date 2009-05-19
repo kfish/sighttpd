@@ -2,19 +2,20 @@
 #include <string.h>
 
 #include "params.h"
+#include "shell.h"
 
-#define MAX_FIELD 64
+#define MAX_FIELD 128
+
+#define MAX_NAME 32
 
 #define KONGOU_HEAD "<html><head><title>Kongou</title></head><body><h1>Kongou</h1>"
 #define KONGOU_FOOT "</body></html>"
 
-#define KONGOU_TEXT "kongou kongou kongou\n"
-
 #define TTYSC 5
 
 struct kongou_field {
+        char name[MAX_NAME];
         int no;
-        char * name;
         int range_min;
         int range_max;
         int dflt;
@@ -46,28 +47,52 @@ kongou_field_init (struct kongou_control * control, int no, char * name,
 {
         struct kongou_field * field;
 
-
         field = &control->fields[no];
 
         field->no = no;
-        field->name = name;
+        strncpy (field->name, name, MAX_NAME);
         field->range_min = range_min;
         field->range_max = range_max;
         field->dflt = dflt;
 }
 
 int
-kongou_control_init (struct kongou_control * control)
+kongou_control_init_short (struct kongou_control * control)
 {
-  struct kongou_field * field;
+        kongou_field_init (control, 5, "EZOOM", 0x0000, 0x00e0, 0000);
+        kongou_field_init (control, 6, "MIRROR", 0x0000, 0x0003, 0000);
+        kongou_field_init (control, 7, "EFFECT", 0x0000, 0x0003, 0000);
+}
 
-  memset (control, 0, sizeof(struct kongou_control));
+int
+kongou_control_init (struct kongou_control * control, int full)
+{
+        char buf[8192], * line, * prev_line;
+        struct kongou_field * field;
+        int n;
+        int no, plen, range_min, range_max, dflt;
+        char name[64];
 
-  kongou_field_init (control, 5, "EZOOM", 0x0000, 0x00e0, 0000);
-  kongou_field_init (control, 6, "MIRROR", 0x0000, 0x0003, 0000);
-  kongou_field_init (control, 7, "EFFECT", 0x0000, 0x0003, 0000);
+        memset (control, 0, sizeof(struct kongou_control));
 
-  return 0;
+        if (!full)
+                return kongou_control_init_short (control);
+
+        n = shell_copy (buf, 8192, "kgctrl info");
+        if (n == 0)
+                return kongou_control_init_short (control);
+
+        prev_line = buf;
+        while (*prev_line && (line = strchr (prev_line, '\n')) != NULL) {
+                *line = '\0';
+                if ((n = sscanf (prev_line, "%i %s %i %i - %i %i",
+                                 &no, name, &plen, &range_min, &range_max, &dflt)) == 6) {
+                        kongou_field_init (control, no, name, range_min, range_max, dflt);
+                }
+                prev_line = line+1;
+        }
+
+        return 0;
 }
 
 params_t *
@@ -90,7 +115,7 @@ kongou_field_entries (int fd, struct kongou_control * control)
   for (i=0; i<MAX_FIELD; i++) {
     field = &control->fields[i];
 
-    if (field->name != NULL) {
+    if (*field->name != '\0') {
         n = snprintf (buf, 1024, "<tr><th>%s</th><td><input name=\"%s\"/></td></tr>\n",
                       field->name, field->name);
         write (fd, buf, n);
@@ -163,11 +188,13 @@ kongou_stream_body (int fd, char * path)
         char * wb_p;
         int wb=0;
         size_t n;
+        int full;
 
         struct kongou_control control;
         struct handle_data h;
 
-        kongou_control_init (&control);
+        full = (strstr (path, "full") != NULL);
+        kongou_control_init (&control, full);
 
         q = index (path, '?');
 

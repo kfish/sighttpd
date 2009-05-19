@@ -3,4 +3,6 @@
 
 int shell_stream (int fd, char * cmd);
 
+int shell_copy (char * buf, size_t n, char * cmd);
+
 #endif /* __SHELL_H__ */
