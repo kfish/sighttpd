@@ -11,9 +11,12 @@
 #include <netdb.h>
 #include <signal.h>
 
+#include "dictionary.h"
 #include "http-response.h"
 
 /* #define DEBUG */
+
+int config_read (const char * path, Dictionary * dictionary);
 
 void panic(char *msg);
 
@@ -34,27 +37,41 @@ usage (const char * progname)
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
+        char *portname;
 	int sd, port;
+        Dictionary * config;
 
         progname = argv[0];
 
-	if (argc != 2) {
-                usage (progname);
-		return (1);
-	}
+        config = dictionary_new ();
 
-	/* Get server's IP and standard service connection* */
-	if (!isdigit(argv[1][0])) {
-		struct servent *srv = getservbyname(argv[1], "tcp");
-
-		if (srv == NULL)
-			panic(argv[1]);
-
-		printf("%s: port=%d\n", srv->s_name, ntohs(srv->s_port));
-		port = srv->s_port;
+        if (argc == 2) {
+                portname = argv[1];
 	} else {
-		port = htons(atoi(argv[1]));
+                if (config_read ("/tmp/sighttpd.conf", config) == -1) {
+                        usage (progname);
+		        return (1);
+                }
+                portname = dictionary_lookup (config, "Listen");
 	}
+
+        if (portname == NULL) {
+                fprintf (stderr, "Portname not specified.\n");
+                exit (1);
+        }
+
+        /* Get server's IP and standard service connection* */
+        if (!isdigit(portname[0])) {
+        	struct servent *srv = getservbyname(portname, "tcp");
+
+        	if (srv == NULL)
+        		panic(argv[1]);
+
+        	printf("%s: port=%d\n", srv->s_name, ntohs(srv->s_port));
+        	port = srv->s_port;
+        } else {
+        	port = htons(atoi(portname));
+        }
 
 	/* Create socket * */
 	sd = socket(PF_INET, SOCK_STREAM, 0);
