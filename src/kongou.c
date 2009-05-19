@@ -19,6 +19,7 @@ struct kongou_field {
         int range_min;
         int range_max;
         int dflt;
+        int value;
 };
 
 struct kongou_control {
@@ -56,24 +57,60 @@ kongou_field_init (struct kongou_control * control, int no, char * name,
         field->dflt = dflt;
 }
 
+void
+kongou_field_got (struct kongou_control * control, int no, int value)
+{
+        struct kongou_field * field;
+
+        field = &control->fields[no];
+        field->value = value;
+}
+
+void
+kongou_control_get_all (struct kongou_control * control)
+{
+        char cmd[64], buf[8192], * line, * prev_line;
+        int n;
+        int no, value;
+        char name[64];
+
+        snprintf (cmd, 64, "kgctrl get-all %d", TTYSC);
+        n = shell_copy (buf, 8192, cmd);
+        if (n == 0) return;
+
+        prev_line = buf;
+        while (*prev_line && (line = strchr (prev_line, '\n')) != NULL) {
+                *line = '\0';
+                if ((n = sscanf (prev_line, "%i %i", &no, &value)) == 2) {
+                        kongou_field_got (control, no, value);
+                }
+                prev_line = line+1;
+        }
+
+        return;
+}
+
 int
 kongou_control_init_short (struct kongou_control * control)
 {
         kongou_field_init (control, 5, "EZOOM", 0x0000, 0x00e0, 0000);
         kongou_field_init (control, 6, "MIRROR", 0x0000, 0x0003, 0000);
         kongou_field_init (control, 7, "EFFECT", 0x0000, 0x0003, 0000);
+
+        return 0;
 }
 
 int
 kongou_control_init (struct kongou_control * control, int full)
 {
         char buf[8192], * line, * prev_line;
-        struct kongou_field * field;
         int n;
         int no, plen, range_min, range_max, dflt;
         char name[64];
 
         memset (control, 0, sizeof(struct kongou_control));
+
+        kongou_control_get_all (control);
 
         if (!full)
                 return kongou_control_init_short (control);
@@ -116,8 +153,8 @@ kongou_field_entries (int fd, struct kongou_control * control)
     field = &control->fields[i];
 
     if (*field->name != '\0') {
-        n = snprintf (buf, 1024, "<tr><th>%s</th><td><input name=\"%s\"/></td></tr>\n",
-                      field->name, field->name);
+        n = snprintf (buf, 1024, "<tr><th>%s</th><td><input name=\"%s\" value=\"0x%04x\"/></td></tr>\n",
+                      field->name, field->name, field->value);
         write (fd, buf, n);
     }
   }
@@ -153,6 +190,11 @@ kongou_set_param (char * key, char * value, void * user_data)
                 return 0;
 
         val = atoi(value);
+
+        /* Check if the value is unchanged */
+        if (val == field->value) {
+                return 0;
+        }
 
         if (val < field->range_min || val > field->range_max) {
                 n = snprintf (buf, 1024, "<li>%s: Value 0x%04x out of range (0x%04x - 0x%04x)\n</li>",

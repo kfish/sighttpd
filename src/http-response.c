@@ -153,9 +153,9 @@ void * http_response (void *arg)
         params_t * request_headers;
         http_request request;
         int fd = * (int *)arg;
-	char s[1024];
+	char s[8192];
         char * cur;
-        size_t rem=1024, nread, n;
+        size_t rem=8192, nread, n;
         int init=0;
 
         cur = s;
@@ -167,7 +167,7 @@ void * http_response (void *arg)
                 if (n == -1) {
                         perror ("read");
                         continue;
-                } else if (nread < 1024) {
+                } else if (nread < 8192) {
                         /* NUL-terminate input buffer */
                         cur[nread] = '\0';
                 }
