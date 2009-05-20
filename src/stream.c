@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include "stream.h"
 #include "params.h"
 #include "ringbuffer.h"
 
@@ -12,11 +13,8 @@
 
 #define CONTENT_TYPE "video/mp4"
 
-static struct ringbuffer stream_rb;
-static int active=0;
-
 static void *
-stream_writer (void * unused)
+stream_writer (struct stream * stream)
 {
         size_t available;
         ssize_t n;
@@ -24,11 +22,11 @@ stream_writer (void * unused)
         struct timeval tv;
         int retval;
 
-        active = 1;
+        stream->active = 1;
 
-        while (active) {
+        while (stream->active) {
                 FD_ZERO (&rfds);
-                FD_SET (STDIN_FILENO, &rfds);
+                FD_SET (stream->input_fd, &rfds);
 
                 tv.tv_sec = 5;
                 tv.tv_usec = 0;
@@ -36,7 +34,7 @@ stream_writer (void * unused)
                 if (retval == -1)
                         perror ("select");
                 else if (retval) {
-                        n = ringbuffer_readfd (STDIN_FILENO, &stream_rb);
+                        n = ringbuffer_readfd (stream->input_fd, &stream->rb);
 #ifdef DEBUG
                         if (n!=0) printf ("stream_writer: read %ld bytes\n", n);
 #endif
@@ -46,29 +44,40 @@ stream_writer (void * unused)
         return NULL;
 }
 
-void
-stream_init (void)
+struct stream *
+stream_open (int fd)
 {
+        struct stream * stream;
 	pthread_t child;
         unsigned char * data;
         size_t len = 4096*16*32;
 
-        data = malloc (len);
+        if ((stream = malloc (sizeof(*stream))) == NULL)
+                return NULL;
 
-        ringbuffer_init (&stream_rb, data, len);
-	pthread_create(&child, 0,  stream_writer, NULL);
+        if ((data = malloc (len)) == NULL) {
+                free (stream);
+                return NULL;
+        }
+
+        ringbuffer_init (&stream->rb, data, len);
+	pthread_create(&child, 0, stream_writer, stream);
 	pthread_detach(child);
+
+        return stream;
 }
 
 void
-stream_close (void)
+stream_close (struct stream * stream)
 {
-        active = 0;
-        free (stream_rb.data);
+        stream->active = 0;
+        free (stream->rb.data);
+
+        free (stream);
 }
 
 params_t *
-stream_append_headers (params_t * response_headers)
+stream_append_headers (params_t * response_headers, struct stream * stream)
 {
         char length[16];
 
@@ -76,21 +85,21 @@ stream_append_headers (params_t * response_headers)
 }
 
 int
-stream_stream_body (int fd)
+stream_stream_body (int fd, struct stream * stream)
 {
         size_t n, avail;
         int rd;
 
-        rd = ringbuffer_open (&stream_rb);
+        rd = ringbuffer_open (&stream->rb);
 
-        while (active) {
-                while ((avail = ringbuffer_avail (&stream_rb, rd)) == 0)
+        while (stream->active) {
+                while ((avail = ringbuffer_avail (&stream->rb, rd)) == 0)
                         usleep (10000);
 
 #ifdef DEBUG
                 if (avail != 0) printf ("stream_reader: %ld bytes available\n", avail);
 #endif
-                n = ringbuffer_writefd (fd, &stream_rb, rd);
+                n = ringbuffer_writefd (fd, &stream->rb, rd);
                 if (n == -1) {
                         break;
                 }
@@ -101,7 +110,7 @@ stream_stream_body (int fd)
 #endif
         }
 
-        ringbuffer_close (&stream_rb, rd);
+        ringbuffer_close (&stream->rb, rd);
 
         return 0;
 }

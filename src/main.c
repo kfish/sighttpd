@@ -11,8 +11,12 @@
 #include <netdb.h>
 #include <signal.h>
 
+#include <unistd.h> /* STDIN_FILENO */
+
 #include "dictionary.h"
 #include "http-response.h"
+#include "sighttpd.h"
+#include "stream.h"
 
 /* #define DEBUG */
 
@@ -37,9 +41,11 @@ usage (const char * progname)
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-        char *portname;
+        const char *portname;
 	int sd, port;
+        struct sighttpd * sighttpd;
         Dictionary * config;
+        struct stream * stream;
 
         progname = argv[0];
 
@@ -73,6 +79,13 @@ int main(int argc, char *argv[])
         	port = htons(atoi(portname));
         }
 
+        log_open ();
+
+        sighttpd = sighttpd_init (port);
+
+        stream = stream_open (STDIN_FILENO);
+        sighttpd->streams = list_append (sighttpd->streams, stream);
+
 	/* Create socket * */
 	sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (sd < 0)
@@ -81,7 +94,7 @@ int main(int argc, char *argv[])
 	/* Bind port/address to socket * */
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = port;
+	addr.sin_port = sighttpd->port;
 	addr.sin_addr.s_addr = INADDR_ANY;	/* any interface */
 
 	if (bind(sd, (struct sockaddr *) &addr, sizeof(addr)) != 0)
@@ -97,6 +110,7 @@ int main(int argc, char *argv[])
 		struct sockaddr gotcha;
 		pthread_t child;
                 pthread_attr_t attr;
+                struct sighttpd_child * schild;
 
                 /* set thread create attributes */
                 pthread_attr_init(&attr);
@@ -104,10 +118,6 @@ int main(int argc, char *argv[])
 
                 /* Ignore SIGPIPE, handle client disconnect in processing threads */
                 signal(SIGPIPE, SIG_IGN);
-
-                log_open ();
-
-                stream_init ();
 
 		/* process all incoming clients */
 		while (1) {
@@ -117,11 +127,13 @@ int main(int argc, char *argv[])
 			if (ad == -1) {
 				perror("accept");
 			} else {
-				pthread_create(&child, &attr,  http_response , &ad);	/* start thread */
+                                schild = sighttpd_child_new (sighttpd, ad);
+				pthread_create(&child, &attr, http_response, schild);	/* start thread */
 			}
 		}
 
-                stream_close ();
-                log_close ();
 	}
+
+        stream_close (stream);
+        log_close ();
 }

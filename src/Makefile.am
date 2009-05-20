@@ -52,6 +52,7 @@ http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 noinst_HEADERS = \
 	$(ds_headers) \
 	$(http_headers) \
+	sighttpd.h \
         log.h \
         stream.h \
 	shell.h \
@@ -65,6 +66,7 @@ noinst_HEADERS = \
 sighttpd_SOURCES = \
 	$(ds_sources) \
 	$(http_sources) \
+	sighttpd.c \
 	main.c \
         log.c \
         stream.c \

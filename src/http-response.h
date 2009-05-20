@@ -1,6 +1,8 @@
 #ifndef __HTTP_RESPONSE_H__
 #define __HTTP_RESPONSE_H__
 
-void * http_response (void *arg);
+#include "sighttpd.h"
+
+void * http_response (void * schild);
 
 #endif /* __HTTP_RESPONSE__ */

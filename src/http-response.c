@@ -2,16 +2,19 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include "sighttpd.h"
 #include "params.h"
 #include "http-reqline.h"
 #include "http-status.h"
 #include "log.h"
 #include "status.h"
+#include "kongou.h"
 #include "uiomux.h"
 #include "stream.h"
 #include "flim.h"
@@ -42,9 +45,12 @@ params_writefd (int fd, params_t * params)
 }
 
 static void
-respond_get_head (http_request * request, params_t * request_headers,
+respond_get_head (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
                   const char ** status_line, params_t ** response_headers)
 {
+        list_t * streams;
+        struct stream * stream;
+
         int status_request=0;
         int uiomux_request=0;
         int stream_request=0;
@@ -67,8 +73,10 @@ respond_get_head (http_request * request, params_t * request_headers,
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = kongou_append_headers (*response_headers);
         } else if (stream_request) {
+                streams = schild->sighttpd->streams;
+                stream = (struct stream *)streams->data;
                 *status_line = http_status_line (HTTP_STATUS_OK);
-                *response_headers = stream_append_headers (*response_headers);
+                *response_headers = stream_append_headers (*response_headers, stream);
         } else if (flim_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = flim_append_headers (*response_headers);
@@ -79,8 +87,13 @@ respond_get_head (http_request * request, params_t * request_headers,
 }
 
 static void
-respond_get_body (int fd, http_request * request, params_t * request_headers)
+respond_get_body (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
 {
+        int fd = schild->accept_fd;
+
+        list_t * streams;
+        struct stream * stream;
+
         int status_request=0;
         int uiomux_request=0;
         int stream_request=0;
@@ -100,7 +113,9 @@ respond_get_body (int fd, http_request * request, params_t * request_headers)
         } else if (kongou_request) {
                 kongou_stream_body (fd, request->path);
         } else if (stream_request) {
-                stream_stream_body (fd);
+                streams = schild->sighttpd->streams;
+                stream = (struct stream *)streams->data;
+                stream_stream_body (fd, stream);
         } else if (flim_request) {
                 flim_stream_body (fd);
         } else {
@@ -117,7 +132,7 @@ respond_method_not_allowed (const char ** status_line, params_t ** response_head
 }
 
 static void
-respond (int fd, http_request * request, params_t * request_headers)
+respond (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
 {
         params_t * response_headers;
         const char * status_line;
@@ -127,20 +142,20 @@ respond (int fd, http_request * request, params_t * request_headers)
         switch (request->method) {
         case HTTP_METHOD_HEAD:
         case HTTP_METHOD_GET:
-                respond_get_head (request, request_headers, &status_line, &response_headers);
+                respond_get_head (schild, request, request_headers, &status_line, &response_headers);
                 break;
         default:
                 respond_method_not_allowed (&status_line, &response_headers);
                 break;
         }
 
-        write (fd, status_line, strlen(status_line));
-        params_writefd (fd, response_headers);
+        write (schild->accept_fd, status_line, strlen(status_line));
+        params_writefd (schild->accept_fd, response_headers);
 
         log_access (request, request_headers, response_headers);
 
         if (request->method == HTTP_METHOD_GET) {
-                respond_get_body (fd, request, request_headers);
+                respond_get_body (schild, request, request_headers);
         }
 
 #ifdef DEBUG
@@ -148,15 +163,17 @@ respond (int fd, http_request * request, params_t * request_headers)
 #endif
 }
 
-void * http_response (void *arg)
+void * http_response (struct sighttpd_child * schild)
 {
         params_t * request_headers;
         http_request request;
-        int fd = * (int *)arg;
+        int fd;
 	char s[8192];
         char * cur;
         size_t rem=8192, nread, n;
         int init=0;
+
+        fd = schild->accept_fd;
 
         cur = s;
 
@@ -182,7 +199,7 @@ void * http_response (void *arg)
 
                 request_headers = params_new_parse (s, strlen (s), PARAMS_HEADERS);
                 if (request_headers != NULL) {
-                        respond (fd, &request, request_headers);
+                        respond (schild, &request, request_headers);
                         goto closeit;
                 } else {
                         n = strlen (cur);
@@ -192,8 +209,7 @@ void * http_response (void *arg)
 	}
 
 closeit:
-
-	close(fd);		/* close the client's channel */
+        sighttpd_child_destroy (schild);
 
 	return 0;		/* terminate the thread */
 }
