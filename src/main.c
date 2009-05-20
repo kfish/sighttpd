@@ -12,6 +12,8 @@
 #include <signal.h>
 
 #include <unistd.h> /* STDIN_FILENO */
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "dictionary.h"
 #include "http-response.h"
@@ -85,6 +87,15 @@ int main(int argc, char *argv[])
 
         stream = stream_open (STDIN_FILENO);
         sighttpd->streams = list_append (sighttpd->streams, stream);
+
+        {
+                int fd;
+                fd = open ("/tmp/stream2.264", O_RDONLY);
+                if (fd != -1) {
+                        stream = stream_open (fd);
+                        sighttpd->streams = list_append (sighttpd->streams, stream);
+                }
+	}
 
 	/* Create socket * */
 	sd = socket(PF_INET, SOCK_STREAM, 0);

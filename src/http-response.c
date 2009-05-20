@@ -12,6 +12,7 @@
 #include "params.h"
 #include "http-reqline.h"
 #include "http-status.h"
+#include "list.h"
 #include "log.h"
 #include "status.h"
 #include "kongou.h"
@@ -53,12 +54,14 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
 
         int status_request=0;
         int uiomux_request=0;
+        int stream2_request=0;
         int stream_request=0;
         int kongou_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
+        stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
@@ -72,6 +75,16 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
         } else if (kongou_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = kongou_append_headers (*response_headers);
+        } else if (stream2_request) {
+                streams = schild->sighttpd->streams;
+                if (streams->next) {
+                        *status_line = http_status_line (HTTP_STATUS_OK);
+                        stream = (struct stream *)streams->next->data;
+                        *response_headers = stream_append_headers (*response_headers, stream);
+                } else {
+                        *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
+                        *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
+                }
         } else if (stream_request) {
                 streams = schild->sighttpd->streams;
                 stream = (struct stream *)streams->data;
@@ -84,6 +97,7 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
                 *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
                 *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
         }
+
 }
 
 static void
@@ -96,12 +110,14 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
 
         int status_request=0;
         int uiomux_request=0;
+        int stream2_request=0;
         int stream_request=0;
         int kongou_request=0;
         int flim_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
+        stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
@@ -112,6 +128,12 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
                 uiomux_stream_body (fd);
         } else if (kongou_request) {
                 kongou_stream_body (fd, request->path);
+        } else if (stream2_request) {
+                streams = schild->sighttpd->streams;
+                if (streams->next) {
+                        stream = (struct stream *)streams->next->data;
+                        stream_stream_body (fd, stream);
+                }
         } else if (stream_request) {
                 streams = schild->sighttpd->streams;
                 stream = (struct stream *)streams->data;
