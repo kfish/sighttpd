@@ -123,7 +123,7 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
         flim_request = !strncmp (request->path, "/flim.txt", 9);
 
         if (status_request) {
-                status_stream_body (fd);
+                status_stream_body (fd, schild->sighttpd);
         } else if (uiomux_request) {
                 uiomux_stream_body (fd);
         } else if (kongou_request) {
