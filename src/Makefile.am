@@ -61,6 +61,7 @@ noinst_HEADERS = \
 	kongou.h \
         status.h \
         uiomux.h \
+	mjpeg.h \
         tests.h
 
 sighttpd_SOURCES = \
@@ -76,7 +77,8 @@ sighttpd_SOURCES = \
         flim.c \
 	kongou.c \
         status.c \
-        uiomux.c
+        uiomux.c \
+	mjpeg.c
 
 sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 

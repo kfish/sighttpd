@@ -19,6 +19,7 @@
 #include "uiomux.h"
 #include "stream.h"
 #include "flim.h"
+#include "mjpeg.h"
 
 /* #define DEBUG */
 
@@ -58,6 +59,7 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
         int stream_request=0;
         int kongou_request=0;
         int flim_request=0;
+	int mjpeg_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
@@ -65,6 +67,7 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
+        mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
 
         if (status_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
@@ -93,6 +96,9 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
         } else if (flim_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = flim_append_headers (*response_headers);
+        } else if (mjpeg_request) {
+                *status_line = http_status_line (HTTP_STATUS_OK);
+                *response_headers = mjpeg_append_headers (*response_headers);
         } else {
                 *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
                 *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
@@ -114,6 +120,7 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
         int stream_request=0;
         int kongou_request=0;
         int flim_request=0;
+        int mjpeg_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
         uiomux_request = !strncmp (request->path, "/uiomux", 7);
@@ -121,6 +128,7 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
         flim_request = !strncmp (request->path, "/flim.txt", 9);
+        mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
 
         if (status_request) {
                 status_stream_body (fd, schild->sighttpd);
@@ -134,7 +142,7 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
                         stream = (struct stream *)streams->next->data;
                         stream_stream_body (fd, stream);
                 }
-        } else if (stream_request) {
+        } else if (stream_request || mjpeg_request) {
                 streams = schild->sighttpd->streams;
                 stream = (struct stream *)streams->data;
                 stream_stream_body (fd, stream);
