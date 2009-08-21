@@ -2,7 +2,7 @@
 #
 # Motion JPEG test
 #
-# After running this shell script, open http://localhost:3000/ with
+# After running this shell script, open http://localhost:3000/mjpeg/ with
 # Firefox.
 #
 
