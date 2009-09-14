@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(sighttpd, 0.1.0, [conrad@metadecks.org])
+AC_INIT(sighttpd, 0.9.0, [conrad@metadecks.org])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADER([config.h])
