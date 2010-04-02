@@ -60,6 +60,8 @@ stream_open (int fd)
                 return NULL;
         }
 
+	stream->input_fd = fd;
+
         ringbuffer_init (&stream->rb, data, len);
 	pthread_create(&child, 0, stream_writer, stream);
 	pthread_detach(child);
