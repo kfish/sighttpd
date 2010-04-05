@@ -18,3 +18,20 @@ To build:
     make
     make install
 
+Developers
+----------
+
+sighttpd is maintained in git at http://github.com/kfish/sighttpd
+
+A list of outstanding tasks is maintained in the TODO file of this source
+distribution. When implementing anything listed in this file, please update
+it by deleting that entry, and include that as part of the patch or commit
+that implements the fix.
+
+Contact
+-------
+
+For technical and other queries, please contact the author:
+
+Conrad Parker <conrad@metadecks.org>
+(kfish on #linux-sh or #annodex on Freenode).
