@@ -11,6 +11,8 @@
 #include "stream.h"
 #include "list.h"
 
+#include "flim.h";
+
 struct sighttpd * sighttpd_init (Dictionary * config)
 {
         struct sighttpd * sighttpd;
@@ -41,7 +43,11 @@ struct sighttpd * sighttpd_init (Dictionary * config)
         }
 
         sighttpd->port = port;
+
 	sighttpd->resources = list_new();
+
+	sighttpd->resources = list_append (sighttpd->resources, flim_resource());
+
         sighttpd->streams = list_new();
 
         return sighttpd;

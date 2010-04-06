@@ -71,6 +71,7 @@ sighttpd_SOURCES = \
 	sighttpd.c \
 	main.c \
         log.c \
+	resource.c \
         stream.c \
 	shell.c \
 	xini.c \

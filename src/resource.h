@@ -17,4 +17,6 @@ struct resource {
 	void * data;
 };
 
+struct resource * resource_new (ResourceCheck check, ResourceHead head, ResourceBody body, void * data);
+
 #endif /* __RESOURCE_H__ */
