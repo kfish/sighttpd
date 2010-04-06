@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "http-reqline.h"
+#include "http-status.h"
 #include "params.h"
+#include "resource.h"
 #include "shell.h"
 
 #define MAX_FIELD 128
@@ -26,7 +29,7 @@ struct kongou_control {
         struct kongou_field fields[MAX_FIELD];
 };
 
-struct kongou_field *
+static struct kongou_field *
 kongou_get_field (struct kongou_control * control, char * fieldname)
 {
   char * thisname;
@@ -42,7 +45,7 @@ kongou_get_field (struct kongou_control * control, char * fieldname)
   return NULL;
 }
 
-void
+static void
 kongou_field_init (struct kongou_control * control, int no, char * name,
                    int range_min, int range_max, int dflt)
 {
@@ -57,7 +60,7 @@ kongou_field_init (struct kongou_control * control, int no, char * name,
         field->dflt = dflt;
 }
 
-void
+static void
 kongou_field_got (struct kongou_control * control, int no, int value)
 {
         struct kongou_field * field;
@@ -66,7 +69,7 @@ kongou_field_got (struct kongou_control * control, int no, int value)
         field->value = value;
 }
 
-void
+static void
 kongou_control_get_all (struct kongou_control * control)
 {
         char cmd[64], buf[8192], * line, * prev_line;
@@ -90,7 +93,7 @@ kongou_control_get_all (struct kongou_control * control)
         return;
 }
 
-int
+static int
 kongou_control_init_short (struct kongou_control * control)
 {
         kongou_field_init (control, 5, "EZOOM", 0x0000, 0x00e0, 0000);
@@ -100,7 +103,7 @@ kongou_control_init_short (struct kongou_control * control)
         return 0;
 }
 
-int
+static int
 kongou_control_init (struct kongou_control * control, int full)
 {
         char buf[8192], * line, * prev_line;
@@ -132,13 +135,27 @@ kongou_control_init (struct kongou_control * control, int full)
         return 0;
 }
 
-params_t *
+static int
+kongou_check (http_request * request, void * data)
+{
+        return !strncmp (request->path, "/kongou", 7);
+}
+
+static params_t *
 kongou_append_headers (params_t * response_headers)
 {
         response_headers = params_append (response_headers, "Content-Type", "text/html");
 }
 
-int
+static void
+kongou_head (http_request * request, params_t * request_headers, const char ** status_line,
+		params_t ** response_headers, void * data)
+{
+        *status_line = http_status_line (HTTP_STATUS_OK);
+        *response_headers = kongou_append_headers (*response_headers);
+}
+
+static int
 kongou_field_entries (int fd, struct kongou_control * control)
 {
   struct kongou_field * field;
@@ -170,7 +187,7 @@ struct handle_data {
         int fd;
 };
 
-int
+static int
 kongou_set_param (char * key, char * value, void * user_data)
 {
         struct handle_data * h = (struct handle_data *)user_data;
@@ -221,8 +238,8 @@ kongou_set_param (char * key, char * value, void * user_data)
         return 0;
 }
 
-int
-kongou_stream_body (int fd, char * path)
+static void
+kongou_body (int fd, http_request * request, params_t * request_headers, void * data)
 {
         char *q;
         char buf[1024], cmd[64];
@@ -234,6 +251,8 @@ kongou_stream_body (int fd, char * path)
 
         struct kongou_control control;
         struct handle_data h;
+
+	char * path = request->path;
 
         full = (strstr (path, "full") != NULL);
         kongou_control_init (&control, full);
@@ -265,3 +284,8 @@ kongou_stream_body (int fd, char * path)
         write (fd, buf, n);
 }
 
+struct resource *
+kongou_resource (void)
+{
+	return resource_new (kongou_check, kongou_head, kongou_body, NULL);
+}

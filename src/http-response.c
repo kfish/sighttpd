@@ -15,7 +15,6 @@
 #include "http-status.h"
 #include "list.h"
 #include "log.h"
-#include "kongou.h"
 #include "stream.h"
 #include "mjpeg.h"
 
@@ -53,18 +52,13 @@ respond_get_head_builtin (struct sighttpd_child * schild, http_request * request
 
         int stream2_request=0;
         int stream_request=0;
-        int kongou_request=0;
 	int mjpeg_request=0;
 
         stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
-        kongou_request = !strncmp (request->path, "/kongou", 7);
         mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
 
-        if (kongou_request) {
-                *status_line = http_status_line (HTTP_STATUS_OK);
-                *response_headers = kongou_append_headers (*response_headers);
-        } else if (stream2_request) {
+        if (stream2_request) {
                 streams = schild->sighttpd->streams;
                 if (streams->next) {
                         *status_line = http_status_line (HTTP_STATUS_OK);
@@ -118,17 +112,13 @@ respond_get_body_builtin (struct sighttpd_child * schild, http_request * request
 
         int stream2_request=0;
         int stream_request=0;
-        int kongou_request=0;
         int mjpeg_request=0;
 
         stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
-        kongou_request = !strncmp (request->path, "/kongou", 7);
         mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
 
-        if (kongou_request) {
-                kongou_stream_body (fd, request->path);
-        } else if (stream2_request) {
+        if (stream2_request) {
                 streams = schild->sighttpd->streams;
                 if (streams->next) {
                         stream = (struct stream *)streams->next->data;
