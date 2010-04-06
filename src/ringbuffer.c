@@ -82,8 +82,6 @@ void ringbuffer_init(struct ringbuffer *rbuf, void *data, size_t len)
 
 	memset(data, 0, len);
 
-	ringbuffer_reset(rbuf);
-
 	rbuf->readers = 0;
 	rbuf->data = data;
 	rbuf->size = len;
@@ -92,6 +90,9 @@ void ringbuffer_init(struct ringbuffer *rbuf, void *data, size_t len)
 #if 0
 	pthread_cond_init(&rbuf->cond, NULL);
 #endif
+
+	ringbuffer_reset(rbuf);
+
 }
 
 /* Returns a read descriptor */
