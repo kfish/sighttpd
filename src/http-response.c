@@ -116,8 +116,8 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
 	for (l = resources; l; l = l->next) {
 		struct resource * r = (struct resource *)l->data;
 
-		if (r->check(schild, request)) {
-			r->head (schild, request, request_headers, status_line, response_headers);
+		if (r->check(request, r->data)) {
+			r->head (request, request_headers, status_line, response_headers, r->data);
 			return;
 		}
 	}
@@ -176,14 +176,15 @@ respond_get_body_builtin (struct sighttpd_child * schild, http_request * request
 static void
 respond_get_body (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
 {
+        int fd = schild->accept_fd;
         list_t * l, * resources;
 
 	resources = schild->sighttpd->resources;
 	for (l = resources; l; l = l->next) {
 		struct resource * r = (struct resource *)l->data;
 
-		if (r->check(schild, request)) {
-			r->body (schild, request, request_headers);
+		if (r->check(request, r->data)) {
+			r->body (fd, request, request_headers, r->data);
 			return;
 		}
 	}
