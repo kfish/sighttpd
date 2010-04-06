@@ -7,10 +7,23 @@ sighttpd \- A stream ingress Hypertext Transfer Protocol Server
 
 .B \fBsighttpd\fR \fIport\fR
 
+.PP
 .SH DESCRIPTION
 .B sighttpd
 is a stream ingress HTTP server.
 
+.PP
+.SH CONFIGURATION
+
+By default, sighttpd looks for the configuration file /etc/sighttpd/sighttpd.conf.
+The following values are known:
+
+.PP
+.IP "\fBListen\fP"
+The port number to listen on. This may be specified as a service name listed in
+\fB/etc/services\fP.
+
+.PP
 .SH AUTHORS
 
 sighttpd was written by Conrad Parker
