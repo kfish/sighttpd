@@ -17,7 +17,6 @@
 #include "log.h"
 #include "status.h"
 #include "kongou.h"
-#include "uiomux.h"
 #include "stream.h"
 #include "mjpeg.h"
 
@@ -54,14 +53,12 @@ respond_get_head_builtin (struct sighttpd_child * schild, http_request * request
         struct stream * stream;
 
         int status_request=0;
-        int uiomux_request=0;
         int stream2_request=0;
         int stream_request=0;
         int kongou_request=0;
 	int mjpeg_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
-        uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
@@ -70,9 +67,6 @@ respond_get_head_builtin (struct sighttpd_child * schild, http_request * request
         if (status_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = status_append_headers (*response_headers);
-        } else if (uiomux_request) {
-                *status_line = http_status_line (HTTP_STATUS_OK);
-                *response_headers = uiomux_append_headers (*response_headers);
         } else if (kongou_request) {
                 *status_line = http_status_line (HTTP_STATUS_OK);
                 *response_headers = kongou_append_headers (*response_headers);
@@ -129,14 +123,12 @@ respond_get_body_builtin (struct sighttpd_child * schild, http_request * request
         struct stream * stream;
 
         int status_request=0;
-        int uiomux_request=0;
         int stream2_request=0;
         int stream_request=0;
         int kongou_request=0;
         int mjpeg_request=0;
 
         status_request = !strncmp (request->path, "/status", 7);
-        uiomux_request = !strncmp (request->path, "/uiomux", 7);
         stream2_request = !strncmp (request->path, "/stream2", 8);
         stream_request = !strncmp (request->path, "/stream", 7);
         kongou_request = !strncmp (request->path, "/kongou", 7);
@@ -144,8 +136,6 @@ respond_get_body_builtin (struct sighttpd_child * schild, http_request * request
 
         if (status_request) {
                 status_stream_body (fd, schild->sighttpd);
-        } else if (uiomux_request) {
-                uiomux_stream_body (fd);
         } else if (kongou_request) {
                 kongou_stream_body (fd, request->path);
         } else if (stream2_request) {
