@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         progname = argv[0];
 
         config = dictionary_new ();
-        config_read ("/tmp/sighttpd.conf", config);
+        config_read ("/etc/sighttpd/sighttpd.conf", config);
 
         if (argc == 2) {
 		dictionary_insert (config, "Listen", argv[1]);
