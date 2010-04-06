@@ -52,17 +52,14 @@ int main(int argc, char *argv[])
         progname = argv[0];
 
         config = dictionary_new ();
+        config_read ("/tmp/sighttpd.conf", config);
 
         if (argc == 2) {
+		dictionary_insert (config, "Listen", argv[1]);
                 portname = argv[1];
-	} else {
-                if (config_read ("/tmp/sighttpd.conf", config) == -1) {
-                        usage (progname);
-		        return (1);
-                }
-                portname = dictionary_lookup (config, "Listen");
 	}
 
+        portname = dictionary_lookup (config, "Listen");
         if (portname == NULL) {
                 fprintf (stderr, "Portname not specified.\n");
                 exit (1);
