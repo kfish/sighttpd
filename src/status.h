@@ -1,6 +1,5 @@
 
-#include "params.h"
+#include "resource.h"
 #include "sighttpd.h"
 
-params_t * status_append_headers (params_t * response_headers);
-int status_stream_body (int fd, struct sighttpd * sighttpd);
+struct resource * status_resource (struct sighttpd * sighttpd);

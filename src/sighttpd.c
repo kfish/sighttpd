@@ -11,6 +11,7 @@
 #include "stream.h"
 #include "list.h"
 
+#include "status.h"
 #include "flim.h"
 #include "uiomux.h"
 
@@ -47,6 +48,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 
 	sighttpd->resources = list_new();
 
+	sighttpd->resources = list_append (sighttpd->resources, status_resource(sighttpd));
 	sighttpd->resources = list_append (sighttpd->resources, flim_resource());
 	sighttpd->resources = list_append (sighttpd->resources, uiomux_resource());
 
