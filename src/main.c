@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <resolv.h>
 #include <pthread.h>
-#include <netdb.h>
 #include <signal.h>
 
 #include <unistd.h> /* STDIN_FILENO */
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
 	/* Bind port/address to socket * */
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = sighttpd->port;
+	addr.sin_port = htons(sighttpd->port);
 	addr.sin_addr.s_addr = INADDR_ANY;	/* any interface */
 
 	if (bind(sd, (struct sockaddr *) &addr, sizeof(addr)) != 0)

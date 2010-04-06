@@ -34,10 +34,9 @@ struct sighttpd * sighttpd_init (Dictionary * config)
                         exit (1);
                 }
 
-                printf("%s: port=%d\n", srv->s_name, ntohs(srv->s_port));
-                port = srv->s_port;
+                port = ntohs(srv->s_port);
         } else {
-                port = htons(atoi(portname));
+                port = atoi(portname);
         }
 
         sighttpd->port = port;
