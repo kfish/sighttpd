@@ -43,8 +43,7 @@ usage (const char * progname)
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-        const char *portname;
-	int sd, port;
+	int sd;
         struct sighttpd * sighttpd;
         Dictionary * config;
         struct stream * stream;
@@ -56,31 +55,11 @@ int main(int argc, char *argv[])
 
         if (argc == 2) {
 		dictionary_insert (config, "Listen", argv[1]);
-                portname = argv[1];
 	}
-
-        portname = dictionary_lookup (config, "Listen");
-        if (portname == NULL) {
-                fprintf (stderr, "Portname not specified.\n");
-                exit (1);
-        }
-
-        /* Get server's IP and standard service connection* */
-        if (!isdigit(portname[0])) {
-        	struct servent *srv = getservbyname(portname, "tcp");
-
-        	if (srv == NULL)
-        		panic(argv[1]);
-
-        	printf("%s: port=%d\n", srv->s_name, ntohs(srv->s_port));
-        	port = srv->s_port;
-        } else {
-        	port = htons(atoi(portname));
-        }
 
         log_open ();
 
-        sighttpd = sighttpd_init (port);
+        sighttpd = sighttpd_init (config);
 
         stream = stream_open (STDIN_FILENO);
         sighttpd->streams = list_append (sighttpd->streams, stream);
