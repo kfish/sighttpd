@@ -7,6 +7,7 @@
 
 #include "dictionary.h"
 #include "sighttpd.h"
+#include "resource.h"
 #include "stream.h"
 #include "list.h"
 
@@ -40,6 +41,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
         }
 
         sighttpd->port = port;
+	sighttpd->resources = list_new();
         sighttpd->streams = list_new();
 
         return sighttpd;
@@ -48,6 +50,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 void sighttpd_close (struct sighttpd * sighttpd)
 {
         list_free_with (sighttpd->streams, stream_close);
+	list_free (sighttpd->resources);
         free (sighttpd);
 }
 

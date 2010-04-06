@@ -54,6 +54,7 @@ noinst_HEADERS = \
 	$(http_headers) \
 	sighttpd.h \
         log.h \
+	resource.h \
         stream.h \
 	shell.h \
 	xini.h \

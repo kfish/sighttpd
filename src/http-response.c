@@ -9,6 +9,7 @@
 #include <netinet/tcp.h>
 
 #include "sighttpd.h"
+#include "resource.h"
 #include "params.h"
 #include "http-reqline.h"
 #include "http-status.h"
@@ -47,10 +48,10 @@ params_writefd (int fd, params_t * params)
 }
 
 static void
-respond_get_head (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
+respond_get_head_builtin (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
                   const char ** status_line, params_t ** response_headers)
 {
-        list_t * streams;
+	list_t * streams;
         struct stream * stream;
 
         int status_request=0;
@@ -103,11 +104,30 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
                 *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
                 *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
         }
-
 }
 
 static void
-respond_get_body (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
+respond_get_head (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
+                  const char ** status_line, params_t ** response_headers)
+{
+        list_t * l, * resources;
+
+	resources = schild->sighttpd->resources;
+	for (l = resources; l; l = l->next) {
+		struct resource * r = (struct resource *)l->data;
+
+		if (r->check(schild, request)) {
+			r->head (schild, request, request_headers, status_line, response_headers);
+			return;
+		}
+	}
+
+	respond_get_head_builtin (schild, request, request_headers, status_line, response_headers);
+}
+
+
+static void
+respond_get_body_builtin (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
 {
         int fd = schild->accept_fd;
 
@@ -151,6 +171,24 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
         } else {
                 http_status_stream_body (fd, HTTP_STATUS_NOT_FOUND);
         }
+}
+
+static void
+respond_get_body (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
+{
+        list_t * l, * resources;
+
+	resources = schild->sighttpd->resources;
+	for (l = resources; l; l = l->next) {
+		struct resource * r = (struct resource *)l->data;
+
+		if (r->check(schild, request)) {
+			r->body (schild, request, request_headers);
+			return;
+		}
+	}
+
+	respond_get_body_builtin (schild, request, request_headers);
 }
 
 static void
