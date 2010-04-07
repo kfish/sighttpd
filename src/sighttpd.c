@@ -58,14 +58,11 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 	sighttpd->resources = list_append (sighttpd->resources, kongou_resource());
 	sighttpd->resources = list_join (sighttpd->resources, statictext_resources (config));
 
-        sighttpd->streams = list_new();
-
         return sighttpd;
 }
 
 void sighttpd_close (struct sighttpd * sighttpd)
 {
-        list_free_with (sighttpd->streams, stream_close);
 	list_free_with (sighttpd->resources, resource_delete);
         free (sighttpd);
 }

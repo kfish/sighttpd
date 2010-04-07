@@ -15,8 +15,6 @@
 #include "http-status.h"
 #include "list.h"
 #include "log.h"
-#include "stream.h"
-#include "mjpeg.h"
 
 /* #define DEBUG */
 
@@ -44,45 +42,6 @@ params_writefd (int fd, params_t * params)
 }
 
 static void
-respond_get_head_builtin (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
-                  const char ** status_line, params_t ** response_headers)
-{
-	list_t * streams;
-        struct stream * stream;
-
-        int stream2_request=0;
-        int stream_request=0;
-	int mjpeg_request=0;
-
-        stream2_request = !strncmp (request->path, "/stream2", 8);
-        stream_request = !strncmp (request->path, "/stream", 7);
-        mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
-
-        if (stream2_request) {
-                streams = schild->sighttpd->streams;
-                if (streams->next) {
-                        *status_line = http_status_line (HTTP_STATUS_OK);
-                        stream = (struct stream *)streams->next->data;
-                        *response_headers = stream_append_headers (*response_headers, stream);
-                } else {
-                        *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
-                        *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
-                }
-        } else if (stream_request) {
-                streams = schild->sighttpd->streams;
-                stream = (struct stream *)streams->data;
-                *status_line = http_status_line (HTTP_STATUS_OK);
-                *response_headers = stream_append_headers (*response_headers, stream);
-        } else if (mjpeg_request) {
-                *status_line = http_status_line (HTTP_STATUS_OK);
-                *response_headers = mjpeg_append_headers (*response_headers);
-        } else {
-                *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
-                *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
-        }
-}
-
-static void
 respond_get_head (struct sighttpd_child * schild, http_request * request, params_t * request_headers,
                   const char ** status_line, params_t ** response_headers)
 {
@@ -98,39 +57,8 @@ respond_get_head (struct sighttpd_child * schild, http_request * request, params
 		}
 	}
 
-	respond_get_head_builtin (schild, request, request_headers, status_line, response_headers);
-}
-
-
-static void
-respond_get_body_builtin (struct sighttpd_child * schild, http_request * request, params_t * request_headers)
-{
-        int fd = schild->accept_fd;
-
-        list_t * streams;
-        struct stream * stream;
-
-        int stream2_request=0;
-        int stream_request=0;
-        int mjpeg_request=0;
-
-        stream2_request = !strncmp (request->path, "/stream2", 8);
-        stream_request = !strncmp (request->path, "/stream", 7);
-        mjpeg_request = !strncmp (request->path, "/mjpeg", 6);
-
-        if (stream2_request) {
-                streams = schild->sighttpd->streams;
-                if (streams->next) {
-                        stream = (struct stream *)streams->next->data;
-                        stream_stream_body (fd, stream);
-                }
-        } else if (stream_request || mjpeg_request) {
-                streams = schild->sighttpd->streams;
-                stream = (struct stream *)streams->data;
-                stream_stream_body (fd, stream);
-        } else {
-                http_status_stream_body (fd, HTTP_STATUS_NOT_FOUND);
-        }
+        *status_line = http_status_line (HTTP_STATUS_NOT_FOUND);
+        *response_headers = http_status_append_headers (*response_headers, HTTP_STATUS_NOT_FOUND);
 }
 
 static void
@@ -149,7 +77,7 @@ respond_get_body (struct sighttpd_child * schild, http_request * request, params
 		}
 	}
 
-	respond_get_body_builtin (schild, request, request_headers);
+        http_status_stream_body (fd, HTTP_STATUS_NOT_FOUND);
 }
 
 static void

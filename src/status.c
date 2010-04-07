@@ -61,12 +61,11 @@ status_body (int fd, http_request * request, params_t * request_headers, void * 
     ntotal += n;
     write (fd, buf, n);
 
-    n = snprintf (buf, 4096, "<p>Active streams: %d</p>\n", list_length (sighttpd->streams));
+    n = snprintf (buf, 4096, "<p>Active resources: %d</p>\n", list_length (sighttpd->resources));
     if (n < 0) return -1;
     if (n > 4096) n = 4096;
     ntotal += n;
     write (fd, buf, n);
-    
 
     n = snprintf (buf, 4096, STATUS_FOOT, VERSION, VERSION);
     if (n < 0) return -1;

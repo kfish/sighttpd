@@ -7,7 +7,6 @@
 struct sighttpd {
 	int port;
 	list_t * resources;
-        list_t * streams;
 };
 
 struct sighttpd_child {

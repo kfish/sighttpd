@@ -11,8 +11,6 @@
 
 /* #define DEBUG */
 
-#define CONTENT_TYPE "video/mp4"
-
 static void *
 stream_writer (struct stream * stream)
 {
@@ -76,14 +74,6 @@ stream_close (struct stream * stream)
         free (stream->rb.data);
 
         free (stream);
-}
-
-params_t *
-stream_append_headers (params_t * response_headers, struct stream * stream)
-{
-        char length[16];
-
-        response_headers = params_append (response_headers, "Content-Type", CONTENT_TYPE);
 }
 
 int
