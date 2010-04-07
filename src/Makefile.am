@@ -60,6 +60,7 @@ noinst_HEADERS = \
 	xini.h \
         flim.h \
 	kongou.h \
+	statictext.h \
         status.h \
         uiomux.h \
 	mjpeg.h \
@@ -78,6 +79,7 @@ sighttpd_SOURCES = \
 	config.c \
         flim.c \
 	kongou.c \
+	statictext.c \
         status.c \
         uiomux.c \
 	mjpeg.c

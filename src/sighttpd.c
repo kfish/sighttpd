@@ -15,6 +15,7 @@
 #include "flim.h"
 #include "uiomux.h"
 #include "kongou.h"
+#include "statictext.h"
 
 struct sighttpd * sighttpd_init (Dictionary * config)
 {
@@ -53,6 +54,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 	sighttpd->resources = list_append (sighttpd->resources, flim_resource());
 	sighttpd->resources = list_append (sighttpd->resources, uiomux_resource());
 	sighttpd->resources = list_append (sighttpd->resources, kongou_resource());
+	sighttpd->resources = list_join (sighttpd->resources, statictext_resources (config));
 
         sighttpd->streams = list_new();
 
