@@ -18,6 +18,11 @@ To build:
     make
     make install
 
+Configuration
+-------------
+
+See the doc/admin-guide.txt for details.
+
 Developers
 ----------
 

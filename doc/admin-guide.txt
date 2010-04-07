@@ -1,0 +1,98 @@
+
+Sighttpd Administrator's Guide
+==============================
+
+The configuration file is looked for in /etc/sighttpd/sighttpd.conf
+
+Configuring streaming from standard input
+-----------------------------------------
+
+This section explains how to configure streaming of data from stdin with
+three examples:
+
+	1. plain text
+	2. H.264 video
+	3. Motion JPEG
+
+1. Streaming text updates
+
+This configuration prints a timestamp every second. The content appears at
+the path /date.txt (eg. http://localhost/date.txt):
+
+sighttpd.conf:
+
+-----
+Listen = 3000
+
+FDStreamStdin = "/date.txt"
+FDStreamContentType = "text/plain"
+-----
+
+Then, run:
+
+    $ while `true`; do date; sleep 1; done | sighttpd
+
+Then connect from another terminal:
+
+$ curl -i http://localhost:3000/date.txt
+HTTP/1.1 200 OK
+Date: Wed, 07 Apr 2010 04:23:09 GMT
+Server: Sighttpd/0.9.0
+Content-Type: text/plain
+
+Wed Apr  7 13:23:09 JST 2010
+Wed Apr  7 13:23:10 JST 2010
+Wed Apr  7 13:23:11 JST 2010
+...
+
+
+
+2. Streaming H.264 video
+
+(This replicates the default configration for handling /stream.264 of
+sighttpd-0.9.0).
+
+sighttpd.conf:
+
+-----
+Listen = 3000
+
+FDStreamStdin = "/stream.264"
+FDStreamContentType = "video/mp4"
+-----
+
+Then run your streaming video input, eg:
+
+	$ shcodecs-record k264-v4l2-stream.ctl | sighttpd
+
+and connect with a video player:
+
+	$ mplayer http://localhost:3000/stream.264 -fps 30
+
+3. Motion MJPEG
+
+(This replicates the default configration for handling /mjpeg of
+sighttpd-0.9.0).
+
+sighttpd.conf:
+
+-----
+Listen = 3000
+
+FDStreamStdin = "/stream.264"
+FDStreamContentType = "multipart/x-mixed-replace; boundary=++++++++"
+-----
+
+This configuration expects that a series of jpeg comes in from stdin. At
+each boundary the following headers must be inserted:
+
+   --++++++++
+   Content-Type: image/jpeg
+   Content-length: <size of jpeg file>
+
+mjpeg_test.sh is provided for testing purpose. Execute the following:
+
+    $ ./mjpeg_test.sh file1 file2 file3 ...
+
+Then open 'http://localhost:3000/mjpeg/' with Firefox.
+
