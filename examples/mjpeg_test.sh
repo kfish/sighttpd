@@ -25,7 +25,7 @@ do
 done
 
 PORT=3000
-SIGHTTPD=./sighttpd
+SIGHTTPD=sighttpd
 BOUNDARY=++++++++
 
 ( 

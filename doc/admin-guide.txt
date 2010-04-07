@@ -90,9 +90,9 @@ each boundary the following headers must be inserted:
    Content-Type: image/jpeg
    Content-length: <size of jpeg file>
 
-mjpeg_test.sh is provided for testing purpose. Execute the following:
+examples/mjpeg_test.sh is provided for testing purpose. Execute the following:
 
-    $ ./mjpeg_test.sh file1 file2 file3 ...
+    $ examples/mjpeg_test.sh file1 file2 file3 ...
 
 Then open 'http://localhost:3000/mjpeg/' with Firefox.
 
