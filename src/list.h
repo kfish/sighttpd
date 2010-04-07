@@ -88,6 +88,14 @@ list_t * list_find (list_t * list, void * data);
 list_t * list_remove (list_t * list, list_t * node);
 
 /**
+ * Join two lists.
+ * \param l1 The first list
+ * \param l2 The second list
+ * \returns The joined list (l1++l2)
+ */
+list_t * list_join (list_t * l1, list_t * l2);
+
+/**
  * Query the number of items in a list
  * \param list the list
  * \returns the number of nodes in the list

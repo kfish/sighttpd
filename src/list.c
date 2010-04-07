@@ -125,6 +125,19 @@ list_remove (list_t * list, list_t * node)
   else return list;
 }
 
+list_t *
+list_join (list_t * l1, list_t * l2)
+{
+  list_t * tail1 = list_tail(l1);
+
+  if (tail1 == NULL) return l2;
+
+  tail1->next = l2;
+  if (l2 != NULL) l2->prev = tail1;
+
+  return l1;
+}
+
 int
 list_length (list_t * list)
 {
