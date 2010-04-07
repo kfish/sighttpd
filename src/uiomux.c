@@ -82,5 +82,5 @@ uiomux_body(int fd, http_request * request, params_t * request_headers, void * d
 struct resource *
 uiomux_resource (void)
 {
-	return resource_new (uiomux_check, uiomux_head, uiomux_body, NULL);
+	return resource_new (uiomux_check, uiomux_head, uiomux_body, NULL /* del */, NULL /* data */);
 }

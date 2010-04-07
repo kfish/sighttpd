@@ -80,5 +80,5 @@ status_body (int fd, http_request * request, params_t * request_headers, void * 
 struct resource *
 status_resource (struct sighttpd * sighttpd)
 {
-	return resource_new (status_check, status_head, status_body, sighttpd);
+	return resource_new (status_check, status_head, status_body, NULL /* del */, sighttpd);
 }

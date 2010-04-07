@@ -42,6 +42,14 @@ statictext_body (int fd, http_request * request, params_t * request_headers, voi
         write (fd, st->text, strlen(st->text));
 }
 
+static void
+statictext_delete (void * data)
+{
+	struct statictext * st = (struct statictext *)data;
+
+	free (st);
+}
+
 struct resource *
 statictext_resource (char * path, char * text)
 {
@@ -53,7 +61,7 @@ statictext_resource (char * path, char * text)
 	st->path = path;
 	st->text = text;
 
-	return resource_new (statictext_check, statictext_head, statictext_body, st);
+	return resource_new (statictext_check, statictext_head, statictext_body, statictext_delete, st);
 }
 
 list_t *

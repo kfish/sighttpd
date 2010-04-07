@@ -64,7 +64,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 void sighttpd_close (struct sighttpd * sighttpd)
 {
         list_free_with (sighttpd->streams, stream_close);
-	list_free (sighttpd->resources);
+	list_free_with (sighttpd->resources, resource_delete);
         free (sighttpd);
 }
 

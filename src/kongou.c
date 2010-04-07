@@ -287,5 +287,5 @@ kongou_body (int fd, http_request * request, params_t * request_headers, void * 
 struct resource *
 kongou_resource (void)
 {
-	return resource_new (kongou_check, kongou_head, kongou_body, NULL);
+	return resource_new (kongou_check, kongou_head, kongou_body, NULL /* del */, NULL /* data */);
 }

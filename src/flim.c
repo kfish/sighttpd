@@ -43,5 +43,5 @@ flim_body (int fd, http_request * request, params_t * request_headers, void * da
 struct resource *
 flim_resource (void)
 {
-	return resource_new (flim_check, flim_head, flim_body, NULL);
+	return resource_new (flim_check, flim_head, flim_body, NULL /* del */, NULL /* data */);
 }
