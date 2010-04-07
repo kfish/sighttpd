@@ -57,7 +57,7 @@ noinst_HEADERS = \
 	resource.h \
         stream.h \
 	shell.h \
-	xini.h \
+	cfg-parse.h \
 	fdstream.h \
         flim.h \
 	kongou.h \
@@ -75,7 +75,7 @@ sighttpd_SOURCES = \
 	resource.c \
         stream.c \
 	shell.c \
-	xini.c \
+	cfg-parse.c \
 	config.c \
 	fdstream.c \
         flim.c \
@@ -89,9 +89,9 @@ sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
 # Unit tests
 test: check
 
-TESTS = $(ds_tests) $(http_tests) xini-test
+TESTS = $(ds_tests) $(http_tests) cfg-parse-test
 
 noinst_PROGRAMS = $(TESTS)
 
-xini_test_SOURCES = xini.c xini-test.c
+cfg_parse_test_SOURCES = cfg-parse.c cfg-parse-test.c
 

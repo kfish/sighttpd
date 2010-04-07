@@ -48,7 +48,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "xini.h"
+#include "cfg-parse.h"
 
 /*#define DEBUG*/
 

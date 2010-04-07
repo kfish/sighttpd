@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "dictionary.h"
-#include "xini.h"
+#include "cfg-parse.h"
 
 static XiniStatus
 config_section (const char * name, void * user_data)
