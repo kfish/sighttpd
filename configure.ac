@@ -9,6 +9,14 @@ AC_CONFIG_HEADER([config.h])
 # Checks for programs.
 AC_PROG_CC
 
+dnl Check for pkgconfig first
+AC_CHECK_PROG(HAVE_PKGCONFIG, pkg-config, yes, no)
+
+dnl Give error and exit if we don't have pkgconfig
+if test "x$HAVE_PKGCONFIG" = "xno"; then
+  AC_MSG_ERROR(you need to have pkgconfig installed !)
+fi
+
 # Checks for libraries.
 
 dnl
@@ -35,6 +43,39 @@ dnl
 RT_LIBS=error
 AC_CHECK_LIB(rt, clock_gettime, RT_LIBS="-lrt")
 AC_SUBST(RT_LIBS)
+
+dnl
+dnl Check for libuiomux
+dnl
+PKG_CHECK_MODULES(UIOMUX, uiomux, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
+if test "x$HAVE_UIOMUX" = "xyes" ; then
+  AC_DEFINE(HAVE_UIOMUX, [], [Define if have libuiomux])
+  AC_SUBST(UIOMUX_CFLAGS)
+  AC_SUBST(UIOMUX_LIBS)
+fi
+AM_CONDITIONAL(HAVE_UIOMUX, [test "x$HAVE_UIOMUX" = "xyes"])
+
+dnl
+dnl Check for libshveu
+dnl
+PKG_CHECK_MODULES(SHVEU, shveu >= 0.5.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
+if test "x$HAVE_SHVEU" = "xyes" ; then
+  AC_DEFINE(HAVE_SHVEU, [], [Define if have libshveu])
+  AC_SUBST(SHVEU_CFLAGS)
+  AC_SUBST(SHVEU_LIBS)
+fi
+AM_CONDITIONAL(HAVE_SHVEU, [test "x$HAVE_SHVEU" = "xyes"])
+
+dnl
+dnl Check for libshcodecs
+dnl
+PKG_CHECK_MODULES(SHCODECS, shcodecs >= 0.9.9, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
+if test "x$HAVE_SHCODECS" = "xyes" ; then
+  AC_DEFINE(HAVE_SHCODECS, [], [Define if have libshcodecs])
+  AC_SUBST(SHCODECS_CFLAGS)
+  AC_SUBST(SHCODECS_LIBS)
+fi
+AM_CONDITIONAL(HAVE_SHCODECS, [test "x$HAVE_SHCODECS" = "xyes"])
 
 # Checks for header files.
 AC_HEADER_RESOLV
@@ -64,6 +105,13 @@ AC_OUTPUT
 AC_MSG_RESULT([
 ------------------------------------------------------------------------
   $PACKAGE $VERSION:  Automatic configuration OK.
+
+  Module configuration:
+
+    UIOMux support: .............. $HAVE_UIOMUX
+    SHVEU support: ............... $HAVE_SHVEU
+    SHCodecs support: ............ $HAVE_SHCODECS
+
 ------------------------------------------------------------------------
 ])
 
