@@ -58,6 +58,7 @@ noinst_HEADERS = \
         stream.h \
 	shell.h \
 	xini.h \
+	fdstream.h \
         flim.h \
 	kongou.h \
 	statictext.h \
@@ -77,6 +78,7 @@ sighttpd_SOURCES = \
 	shell.c \
 	xini.c \
 	config.c \
+	fdstream.c \
         flim.c \
 	kongou.c \
 	statictext.c \

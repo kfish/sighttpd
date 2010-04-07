@@ -12,6 +12,7 @@
 #include "list.h"
 
 #include "status.h"
+#include "fdstream.h"
 #include "flim.h"
 #include "uiomux.h"
 #include "kongou.h"
@@ -51,6 +52,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 	sighttpd->resources = list_new();
 
 	sighttpd->resources = list_append (sighttpd->resources, status_resource(sighttpd));
+	sighttpd->resources = list_join (sighttpd->resources, fdstream_resources(config));
 	sighttpd->resources = list_append (sighttpd->resources, flim_resource());
 	sighttpd->resources = list_append (sighttpd->resources, uiomux_resource());
 	sighttpd->resources = list_append (sighttpd->resources, kongou_resource());
