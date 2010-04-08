@@ -120,10 +120,10 @@ copa_cin (char c, int char_class)
     if (c == '#') return TRUE;
 
   if (char_class & X_LBRACKET)
-    if (c == '[') return TRUE;
+    if (c == '<') return TRUE;
 
   if (char_class & X_RBRACKET)
-    if (c == ']') return TRUE;
+    if (c == '>') return TRUE;
 
   if (char_class & X_DQUOTE)
     if (c == '"') return TRUE;
