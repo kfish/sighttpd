@@ -532,22 +532,13 @@ copa_parse_assignment (CopaParser * parser)
 
   if (!parser->active) return -1;
 
-  name = copa_slurp_to (parser, X_WHITESPACE | X_EQUAL, X_COMMENT | X_NEWLINE);
+  name = copa_slurp_to (parser, X_WHITESPACE, X_COMMENT | X_NEWLINE);
 
 #ifdef DEBUG
   printf ("copa_parse_assignment: got name (%s)\n", name);
 #endif
 
   if (name == NULL) return -1;
-
-  copa_skip_whitespace (parser);
-
-  if (!copa_assert_and_pass (parser, X_EQUAL)) {
-#ifdef DEBUG
-    printf ("copa: attr failed EQUAL on %s>\n", name);
-#endif
-    goto err_free_name;
-  }
 
   copa_skip_whitespace (parser);
 
