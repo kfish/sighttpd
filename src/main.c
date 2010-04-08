@@ -13,10 +13,9 @@
 #include "dictionary.h"
 #include "http-response.h"
 #include "sighttpd.h"
+#include "cfg-read.h"
 
 /* #define DEBUG */
-
-int config_read (const char * path, Dictionary * dictionary);
 
 void panic(char *msg);
 
@@ -44,7 +43,7 @@ int main(int argc, char *argv[])
         progname = argv[0];
 
         config = dictionary_new ();
-        config_read ("/etc/sighttpd/sighttpd.conf", config);
+        cfg_read ("/etc/sighttpd/sighttpd.conf", config);
 
         if (argc == 2) {
 		dictionary_insert (config, "Listen", argv[1]);

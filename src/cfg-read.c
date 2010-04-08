@@ -5,19 +5,19 @@
 #include "cfg-parse.h"
 
 static CopaStatus
-config_block_start (const char * name, void * user_data)
+cfg_read_block_start (const char * name, void * user_data)
 {
   return COPA_OK;
 }
 
 static CopaStatus
-config_block_end (const char * name, void * user_data)
+cfg_read_block_end (const char * name, void * user_data)
 {
   return COPA_OK;
 }
 
 static CopaStatus
-config_assign (const char * name, const char * value, void * user_data)
+cfg_read_assign (const char * name, const char * value, void * user_data)
 {
   Dictionary * dictionary = (Dictionary *) user_data;
 
@@ -27,13 +27,13 @@ config_assign (const char * name, const char * value, void * user_data)
 }
 
 int
-config_read (const char * path, Dictionary * dictionary)
+cfg_read (const char * path, Dictionary * dictionary)
 {
   CopaStatus status;
 
-  status = copa_read (path, config_block_start, dictionary,
-		      config_block_end, dictionary,
-		      config_assign, dictionary);
+  status = copa_read (path, cfg_read_block_start, dictionary,
+		      cfg_read_block_end, dictionary,
+		      cfg_read_assign, dictionary);
 
   return (status == COPA_OK) ? 0 : -1;
 }

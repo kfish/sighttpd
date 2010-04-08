@@ -58,6 +58,7 @@ noinst_HEADERS = \
         stream.h \
 	shell.h \
 	cfg-parse.h \
+	cfg-read.h \
 	fdstream.h \
         flim.h \
 	kongou.h \
@@ -76,7 +77,7 @@ sighttpd_SOURCES = \
         stream.c \
 	shell.c \
 	cfg-parse.c \
-	config.c \
+	cfg-read.c \
 	fdstream.c \
         flim.c \
 	kongou.c \
