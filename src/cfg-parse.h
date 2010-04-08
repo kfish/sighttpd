@@ -30,36 +30,36 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __XINI_H__
-#define __XINI_H__
+#ifndef __CFG_PARSE_H__
+#define __CFG_PARSE_H__
 
 /** \file
  *
- * A .ini file parser.
+ * A configuration file parser.
  */
 
 typedef enum {
-  XINI_STOP_ERR = -2,
-  XINI_SYS_ERR = -1,
-  XINI_OK = 0,
-  XINI_STOP = 1,
-  XINI_SKIP_SECTION = 2
-} XiniStatus;
+  COPA_STOP_ERR = -2,
+  COPA_SYS_ERR = -1,
+  COPA_OK = 0,
+  COPA_STOP = 1,
+  COPA_SKIP_SECTION = 2
+} CopaStatus;
 
 /**
  * Signature of a callback to be called when a [Section] is found.
  * \param name The name of the section
  * \param user_data A generic pointer you have provided earlier
- * \retval XINI_STOP_ERR Stop all parsing, return XINI_STOP_ERR to
- *         xini_read() or xini_read_fd()
- * \retval XINI_OK Continue and call the Assign callbacks for this section.
- * \retval XINI_STOP Stop all parsing, return XINI_STOP to xini_read() or
- *         xini_read_fd()
- * \retval XINI_SKIP_SECTION Skip this section, ie. don't call the Assign
+ * \retval COPA_STOP_ERR Stop all parsing, return COPA_STOP_ERR to
+ *         copa_read() or copa_read_fd()
+ * \retval COPA_OK Continue and call the Assign callbacks for this section.
+ * \retval COPA_STOP Stop all parsing, return COPA_STOP to copa_read() or
+ *         copa_read_fd()
+ * \retval COPA_SKIP_SECTION Skip this section, ie. don't call the Assign
  *         callback for this section. If this was the last section in the
- *         .ini file, XINI_OK will be returned to xini_read() or xini_read_fd()
+ *         .ini file, COPA_OK will be returned to copa_read() or copa_read_fd()
  */
-typedef XiniStatus (*XiniSection) (const char * name, void * user_data);
+typedef CopaStatus (*CopaSection) (const char * name, void * user_data);
 
 /**
  * Signature of a callback to be called when an assignment is found.
@@ -68,35 +68,35 @@ typedef XiniStatus (*XiniSection) (const char * name, void * user_data);
  * \param user_data A generic pointer you have provided earlier
  * \retval 0 Ignored anyway :)
  */
-typedef XiniStatus (*XiniAssign) (const char * name, const char * value,
+typedef CopaStatus (*CopaAssign) (const char * name, const char * value,
 				  void * user_data);
 
 /**
  * Read an .ini file
  * \param path The file to read
- * \param section A callback for Xini to call when a new [section] is found
+ * \param section A callback for Copa to call when a new [section] is found
  * \param section_user_data Arbitrary data you wish to pass to your
  *        \a section callback.
- * \param assign A callback for Xini to call when a new assignment is found
+ * \param assign A callback for Copa to call when a new assignment is found
  * \param assign_user_data Arbitrary data you wish to pass to your
  *        \a assign callback.
  */
-XiniStatus xini_read (char * path,
-		      XiniSection section, void * section_user_data,
-		      XiniAssign assign, void * assign_user_data);
+CopaStatus copa_read (char * path,
+		      CopaSection section, void * section_user_data,
+		      CopaAssign assign, void * assign_user_data);
 
 /**
  * Read .ini data from a file descriptor
  * \param fd The file descriptor to read from
- * \param section A callback for Xini to call when a new [section] is found
+ * \param section A callback for Copa to call when a new [section] is found
  * \param section_user_data Arbitrary data you wish to pass to your
  *        \a section callback.
- * \param assign A callback for Xini to call when a new assignment is found
+ * \param assign A callback for Copa to call when a new assignment is found
  * \param assign_user_data Arbitrary data you wish to pass to your
  *        \a assign callback.
  */
-int xini_read_fd (int fd,
-		  XiniSection section, void * section_user_data,
-		  XiniAssign assign, void * assign_user_data);
+int copa_read_fd (int fd,
+		  CopaSection section, void * section_user_data,
+		  CopaAssign assign, void * assign_user_data);
 
-#endif /* __XINI_H__ */
+#endif /* __CFG_PARSE_H__ */

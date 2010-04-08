@@ -31,12 +31,9 @@
 */
 
 /*
- * xini.c
+ * cfg-parse.c
  *
- * A trivial parser for .ini files
- *
- * A good specification of .ini file parsing is at:
- * http://cloanto.com/specs/ini.html
+ * A trivial parser for configuration files
  */
 
 #include "config.h"
@@ -75,15 +72,15 @@
 #define BUFFER_SIZE 8
 #define INIT_SIZE 16
 
-typedef struct _XiniParser XiniParser;
+typedef struct _CopaParser CopaParser;
 
-struct _XiniParser {
+struct _CopaParser {
   char read_buffer[BUFFER_SIZE];
-  XiniSection section;
+  CopaSection section;
   void * section_user_data;
-  XiniAssign assign;
+  CopaAssign assign;
   void * assign_user_data;
-  XiniStatus status;
+  CopaStatus status;
   int fd;
   int active;
   char pushback;
@@ -111,7 +108,7 @@ struct _XiniParser {
 #define X_EQUAL       1<<7
 
 static int
-xini_cin (char c, int char_class)
+copa_cin (char c, int char_class)
 {
   if (char_class & X_NEWLINE)
     if (c == '\n' || c == '\r') return TRUE;
@@ -145,11 +142,11 @@ xini_cin (char c, int char_class)
  * Dump read buffer
  */
 static int
-xini_dump (XiniParser * parser)
+copa_dump (CopaParser * parser)
 {
   char * c = parser->read_buffer;
   
-  printf ("xini_dump: [%c] %d/%d >>>", parser->pushback,
+  printf ("copa_dump: [%c] %d/%d >>>", parser->pushback,
 	  parser->offset, parser->nread);
   switch (parser->nread) {
   case 8: putchar (*c++);
@@ -169,19 +166,19 @@ xini_dump (XiniParser * parser)
  * Refresh the read buffer
  */
 static int
-xini_refill (XiniParser * parser)
+copa_refill (CopaParser * parser)
 {
   parser->nread = read (parser->fd, parser->read_buffer, BUFFER_SIZE);
   if (parser->nread == -1) {
     /* XXX: error */
 #ifdef DEBUG
-    printf ("xini_next: nread == -1\n");
+    printf ("copa_next: nread == -1\n");
 #endif
     parser->active = FALSE;
     return -1;
   } else if (parser->nread == 0) {
 #ifdef DEBUG
-    printf ("xini_next: nread == 0\n");
+    printf ("copa_next: nread == 0\n");
 #endif
     parser->active = FALSE;
     return -1;
@@ -192,7 +189,7 @@ xini_refill (XiniParser * parser)
 }
 
 static int
-xini_octal (char c)
+copa_octal (char c)
 {
   int num;
 
@@ -212,7 +209,7 @@ xini_octal (char c)
 }
 
 static int
-xini_hex (char c)
+copa_hex (char c)
 {
   int num;
 
@@ -241,24 +238,24 @@ xini_hex (char c)
 
 /**
  * Retrieve the next character from the parser.
- * \param parser a XiniParser
+ * \param parser a CopaParser
  * \return the next character, or -1 on EOF or error.
  * \note parser->pushback will always be NUL after a call to this.
  */
 static char
-xini_next (XiniParser * parser)
+copa_next (CopaParser * parser)
 {
   char c = NUL;
   int num;
 
 #ifdef DEBUG
-  xini_dump (parser);
+  copa_dump (parser);
 #endif
 
   if (parser->pushback) {
     char tmp = parser->pushback;
 #ifdef DEBUG
-    printf ("xini_next: pushback %c [%02x]\n", tmp, tmp);
+    printf ("copa_next: pushback %c [%02x]\n", tmp, tmp);
 #endif
     parser->pushback = NUL;
     return tmp;
@@ -267,9 +264,9 @@ xini_next (XiniParser * parser)
   while (c == NUL) {
     if (parser->offset >= BUFFER_SIZE) {
 #ifdef DEBUG
-      printf ("xini_next: refill (%d/%d)\n", parser->offset, BUFFER_SIZE);
+      printf ("copa_next: refill (%d/%d)\n", parser->offset, BUFFER_SIZE);
 #endif
-      if (xini_refill (parser) == -1) return -1;
+      if (copa_refill (parser) == -1) return -1;
     }
     
     c = parser->read_buffer[parser->offset++];
@@ -277,7 +274,7 @@ xini_next (XiniParser * parser)
     if (parser->octal > 0) {
       parser->octal--;
 
-      if ((num = xini_octal (c)) == -1) {
+      if ((num = copa_octal (c)) == -1) {
 	/* End of octal input */
 	parser->octal = 0;
 
@@ -301,7 +298,7 @@ xini_next (XiniParser * parser)
     } else if (parser->hex > 0) {
       parser->hex--;
 
-      if ((num = xini_hex (c)) == -1) {
+      if ((num = copa_hex (c)) == -1) {
 	/* End of hex input */
 	parser->hex = 0;
 
@@ -348,7 +345,7 @@ xini_next (XiniParser * parser)
 	break;
 
       default: /* try as octal */
-	if ((num = xini_octal (c)) != -1) {
+	if ((num = copa_octal (c)) != -1) {
 	  c = NUL;
 	  parser->octal = 3;
 	  parser->numchar = 0;
@@ -371,27 +368,27 @@ xini_next (XiniParser * parser)
 }
 
 static char
-xini_peek (XiniParser * parser)
+copa_peek (CopaParser * parser)
 {
   char c;
 
   if (parser->pushback) {
 #ifdef DEBUG
-    printf ("xini_peek: pushback %c [%02x]\n",
+    printf ("copa_peek: pushback %c [%02x]\n",
 	    parser->pushback, parser->pushback);
 #endif
     return parser->pushback;
   }
 
-  if ((c = xini_next (parser)) == -1) {
+  if ((c = copa_next (parser)) == -1) {
 #ifdef DEBUG
-    printf ("xini_peek: xini_next returned -1\n");
+    printf ("copa_peek: copa_next returned -1\n");
 #endif
     return -1;
   }
 
 #ifdef DEBUG
-  printf ("xini_peek: %c [%02x]\n", c, c);
+  printf ("copa_peek: %c [%02x]\n", c, c);
 #endif
 
   parser->pushback = c;
@@ -399,14 +396,14 @@ xini_peek (XiniParser * parser)
 }
 
 static void
-xini_skip_over (XiniParser * parser, int char_class)
+copa_skip_over (CopaParser * parser, int char_class)
 {
   char c;
 
   if (!parser->active) return;
 
-  while ((c = xini_next (parser)) != -1) {
-    if (!xini_cin (c, char_class)) {
+  while ((c = copa_next (parser)) != -1) {
+    if (!copa_cin (c, char_class)) {
       parser->pushback = c;
       return;
     }
@@ -414,20 +411,20 @@ xini_skip_over (XiniParser * parser, int char_class)
 }
 
 static void
-xini_skip_whitespace (XiniParser * parser)
+copa_skip_whitespace (CopaParser * parser)
 {
-  xini_skip_over (parser, X_WHITESPACE);
+  copa_skip_over (parser, X_WHITESPACE);
 }
 
 static void
-xini_skip_to (XiniParser * parser, int char_class)
+copa_skip_to (CopaParser * parser, int char_class)
 {
   char c;
 
   if (!parser->active) return;
 
-  while ((c = xini_next (parser)) != -1) {
-    if (xini_cin (c, char_class)) {
+  while ((c = copa_next (parser)) != -1) {
+    if (copa_cin (c, char_class)) {
       parser->pushback = c;
       return;
     }
@@ -437,7 +434,7 @@ xini_skip_to (XiniParser * parser, int char_class)
 }
 
 static char *
-xini_slurp_to (XiniParser * parser, int good_end, int bad_end)
+copa_slurp_to (CopaParser * parser, int good_end, int bad_end)
 {
   char c, * ret, * new_ret;
   size_t len = 0, maxlen = INIT_SIZE;
@@ -447,11 +444,11 @@ xini_slurp_to (XiniParser * parser, int good_end, int bad_end)
   ret = (char *) malloc (maxlen);
   ret[0] = NUL;
 
-  while ((c = xini_next (parser)) != -1) {
-    if (xini_cin(c, good_end)) {
+  while ((c = copa_next (parser)) != -1) {
+    if (copa_cin(c, good_end)) {
       parser->pushback = c;
       return ret;
-    } else if (xini_cin (c, bad_end)) {
+    } else if (copa_cin (c, bad_end)) {
       free (ret);
       parser->active = FALSE;
       parser->pushback = c;
@@ -476,15 +473,15 @@ xini_slurp_to (XiniParser * parser, int good_end, int bad_end)
 }
 
 static int
-xini_assert_and_pass (XiniParser * parser, int char_class)
+copa_assert_and_pass (CopaParser * parser, int char_class)
 {
   char c;
 
   if (!parser->active) return FALSE;
 
-  c = xini_next (parser);
+  c = copa_next (parser);
 
-  if (!xini_cin (c, char_class)) {
+  if (!copa_cin (c, char_class)) {
     parser->active = FALSE;
     return FALSE;
   }
@@ -493,20 +490,20 @@ xini_assert_and_pass (XiniParser * parser, int char_class)
 }
 
 static char *
-xini_slurp_quoted (XiniParser * parser)
+copa_slurp_quoted (CopaParser * parser)
 {
   char c, * ret;
   int quote = X_DQUOTE; /* quote char to match on */
 
   if (!parser->active) return NULL;
 
-  c = xini_next (parser);
+  c = copa_next (parser);
 
-  if (xini_cin (c, X_SQUOTE)) quote = X_SQUOTE;
+  if (copa_cin (c, X_SQUOTE)) quote = X_SQUOTE;
 
-  if ((ret = xini_slurp_to (parser, quote, X_NONE)) == NULL) {
+  if ((ret = copa_slurp_to (parser, quote, X_NONE)) == NULL) {
     return NULL;
-  } else if (!xini_assert_and_pass (parser, quote)) {
+  } else if (!copa_assert_and_pass (parser, quote)) {
     free (ret);
     return NULL;
   }    
@@ -515,13 +512,13 @@ xini_slurp_quoted (XiniParser * parser)
 }
 
 static char *
-xini_slurp_lineval (XiniParser * parser)
+copa_slurp_lineval (CopaParser * parser)
 {
   char * ret;
 
   if (!parser->active) return NULL;
 
-  if ((ret = xini_slurp_to (parser, X_COMMENT | X_NEWLINE, X_NONE)) == NULL) {
+  if ((ret = copa_slurp_to (parser, X_COMMENT | X_NEWLINE, X_NONE)) == NULL) {
     return NULL;
   }    
 
@@ -529,36 +526,36 @@ xini_slurp_lineval (XiniParser * parser)
 }
 
 static int
-xini_parse_assignment (XiniParser * parser)
+copa_parse_assignment (CopaParser * parser)
 {
   char c, * name, * value;
 
   if (!parser->active) return -1;
 
-  name = xini_slurp_to (parser, X_WHITESPACE | X_EQUAL, X_COMMENT | X_NEWLINE);
+  name = copa_slurp_to (parser, X_WHITESPACE | X_EQUAL, X_COMMENT | X_NEWLINE);
 
 #ifdef DEBUG
-  printf ("xini_parse_assignment: got name (%s)\n", name);
+  printf ("copa_parse_assignment: got name (%s)\n", name);
 #endif
 
   if (name == NULL) return -1;
 
-  xini_skip_whitespace (parser);
+  copa_skip_whitespace (parser);
 
-  if (!xini_assert_and_pass (parser, X_EQUAL)) {
+  if (!copa_assert_and_pass (parser, X_EQUAL)) {
 #ifdef DEBUG
-    printf ("xini: attr failed EQUAL on %s>\n", name);
+    printf ("copa: attr failed EQUAL on %s>\n", name);
 #endif
     goto err_free_name;
   }
 
-  xini_skip_whitespace (parser);
+  copa_skip_whitespace (parser);
 
-  c = xini_peek (parser);
-  if (xini_cin (c, X_DQUOTE | X_SQUOTE))
-    value = xini_slurp_quoted (parser);
+  c = copa_peek (parser);
+  if (copa_cin (c, X_DQUOTE | X_SQUOTE))
+    value = copa_slurp_quoted (parser);
   else
-    value = xini_slurp_lineval (parser);
+    value = copa_slurp_lineval (parser);
 
   if (value == NULL) {
 #ifdef DEBUG
@@ -568,11 +565,11 @@ xini_parse_assignment (XiniParser * parser)
   }
 
 #ifdef DEBUG
-  printf ("xini_parse_assignment: %s = %s\n", name, value);
+  printf ("copa_parse_assignment: %s = %s\n", name, value);
 #endif
 
   /** Call callback */
-  if (parser->status == XINI_OK && parser->assign) {
+  if (parser->status == COPA_OK && parser->assign) {
     parser->assign (name, value, parser->assign_user_data);
   }
 
@@ -590,23 +587,23 @@ xini_parse_assignment (XiniParser * parser)
 }
 
 static int
-xini_parse_section (XiniParser * parser)
+copa_parse_section (CopaParser * parser)
 {
   char * section;
 
   if (!parser->active) return -1;
 
-  if (!xini_assert_and_pass (parser, X_LBRACKET)) return -1;
+  if (!copa_assert_and_pass (parser, X_LBRACKET)) return -1;
 
-  if ((section = xini_slurp_to (parser, X_RBRACKET,
+  if ((section = copa_slurp_to (parser, X_RBRACKET,
 				X_COMMENT | X_NEWLINE)) == NULL) {
 #ifdef DEBUG
-    printf ("xini_parse_section: FAILED\n");
+    printf ("copa_parse_section: FAILED\n");
 #endif
     return -1;
-  } else if (!xini_assert_and_pass (parser, X_RBRACKET)) {
+  } else if (!copa_assert_and_pass (parser, X_RBRACKET)) {
 #ifdef DEBUG
-    printf ("xini_parse_section: did not get ]\n");
+    printf ("copa_parse_section: did not get ]\n");
 #endif
     free (section);
     return -1;
@@ -620,50 +617,50 @@ xini_parse_section (XiniParser * parser)
 }
 
 static int
-xini_parse_line (XiniParser * parser)
+copa_parse_line (CopaParser * parser)
 {
   char c;
 
-  xini_skip_whitespace (parser);
+  copa_skip_whitespace (parser);
   
-  c = xini_peek (parser);
+  c = copa_peek (parser);
 #ifdef DEBUG
-  printf ("xini_parse_line: %c [%02x]\n", c, c);
+  printf ("copa_parse_line: %c [%02x]\n", c, c);
 #endif
 
-  if (xini_cin (c, X_COMMENT)) {
+  if (copa_cin (c, X_COMMENT)) {
 #ifdef DEBUG
-    printf ("xini_parse_line: got COMMENT\n");
+    printf ("copa_parse_line: got COMMENT\n");
 #endif
-    xini_skip_to (parser, X_NEWLINE);
-  } else if (xini_cin (c, X_LBRACKET)) {
+    copa_skip_to (parser, X_NEWLINE);
+  } else if (copa_cin (c, X_LBRACKET)) {
 #ifdef DEBUG
-    printf ("xini_parse_line: got SECTION\n");
+    printf ("copa_parse_line: got SECTION\n");
 #endif
-    xini_parse_section (parser);
+    copa_parse_section (parser);
   } else {
 #ifdef DEBUG
-    printf ("xini_parse_line: attempt ASSIGNMENT\n");
+    printf ("copa_parse_line: attempt ASSIGNMENT\n");
 #endif
-    xini_parse_assignment (parser);
+    copa_parse_assignment (parser);
   }
 
   return 0;
 }
 
 int
-xini_read_fd (int fd,
-	      XiniSection section, void * section_user_data,
-	      XiniAssign assign, void * assign_user_data)
+copa_read_fd (int fd,
+	      CopaSection section, void * section_user_data,
+	      CopaAssign assign, void * assign_user_data)
 {
-  XiniParser parser;
+  CopaParser parser;
 
   memset (parser.read_buffer, 0, BUFFER_SIZE);
   parser.section = section;
   parser.section_user_data = section_user_data;
   parser.assign = assign;
   parser.assign_user_data = assign_user_data;
-  parser.status = XINI_OK;
+  parser.status = COPA_OK;
   parser.fd = fd;
   parser.active = TRUE;
   parser.pushback = NUL;
@@ -674,27 +671,27 @@ xini_read_fd (int fd,
   parser.nread = 0;
   parser.offset = 0;
 
-  if (xini_refill (&parser) == -1) return XINI_SYS_ERR;
+  if (copa_refill (&parser) == -1) return COPA_SYS_ERR;
 
-  while (parser.active) xini_parse_line (&parser);
+  while (parser.active) copa_parse_line (&parser);
 
   /* If the parse finished in a status of SKIP_SECTION, return OK */
-  if (parser.status == XINI_SKIP_SECTION)
-    parser.status = XINI_OK;
+  if (parser.status == COPA_SKIP_SECTION)
+    parser.status = COPA_OK;
 
   return parser.status;
 }
 
 int
-xini_read (char * path,
-	   XiniSection section, void * section_user_data,
-	   XiniAssign assign, void * assign_user_data)
+copa_read (char * path,
+	   CopaSection section, void * section_user_data,
+	   CopaAssign assign, void * assign_user_data)
 {
   int fd;
 
-  if ((fd = open (path, O_RDONLY)) == -1) return XINI_SYS_ERR;
+  if ((fd = open (path, O_RDONLY)) == -1) return COPA_SYS_ERR;
 
-  xini_read_fd (fd, section, section_user_data, assign, assign_user_data);
+  copa_read_fd (fd, section, section_user_data, assign, assign_user_data);
 
   return 0;
 }
