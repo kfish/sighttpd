@@ -26,6 +26,7 @@ config_read (const char * path, Dictionary * dictionary)
   CopaStatus status;
 
   status = copa_read (path, config_block_start, dictionary,
+		      NULL, NULL,
 		      config_assign, dictionary);
 
   return (status == COPA_OK) ? 0 : -1;

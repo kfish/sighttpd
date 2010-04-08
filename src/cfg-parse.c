@@ -78,6 +78,8 @@ struct _CopaParser {
   char read_buffer[BUFFER_SIZE];
   CopaBlockStart block_start;
   void * block_start_user_data;
+  CopaBlockEnd block_end;
+  void * block_end_user_data;
   CopaAssign assign;
   void * assign_user_data;
   CopaStatus status;
@@ -105,7 +107,7 @@ struct _CopaParser {
 #define X_RBRACKET    1<<4
 #define X_DQUOTE      1<<5
 #define X_SQUOTE      1<<6
-#define X_EQUAL       1<<7
+#define X_SLASH       1<<7
 
 static int
 copa_cin (char c, int char_class)
@@ -131,8 +133,8 @@ copa_cin (char c, int char_class)
   if (char_class & X_SQUOTE)
     if (c == '\'') return TRUE;
 
-  if (char_class & X_EQUAL)
-    if (c == '=') return TRUE;
+  if (char_class & X_SLASH)
+    if (c == '/') return TRUE;
 
   return FALSE;
 }
@@ -581,10 +583,18 @@ static int
 copa_parse_block (CopaParser * parser)
 {
   char * block;
+  char c;
+  int end=0;
 
   if (!parser->active) return -1;
 
   if (!copa_assert_and_pass (parser, X_LBRACKET)) return -1;
+
+  c = copa_peek (parser);
+  if (copa_cin (c, X_SLASH)) {
+    c = copa_next (parser);
+    end = 1;
+  }
 
   if ((block = copa_slurp_to (parser, X_RBRACKET,
 				X_COMMENT | X_NEWLINE)) == NULL) {
@@ -600,8 +610,12 @@ copa_parse_block (CopaParser * parser)
     return -1;
   }
 
-  if (parser->block_start) {
-    parser->status = parser->block_start (block, parser->block_start_user_data);
+  if (end) {
+    if (parser->block_end)
+      parser->status = parser->block_end (block, parser->block_end_user_data);
+  } else {
+    if (parser->block_start)
+      parser->status = parser->block_start (block, parser->block_start_user_data);
   }
 
   return 0;
@@ -642,6 +656,7 @@ copa_parse_line (CopaParser * parser)
 int
 copa_read_fd (int fd,
 	      CopaBlockStart block_start, void * block_start_user_data,
+	      CopaBlockEnd block_end, void * block_end_user_data,
 	      CopaAssign assign, void * assign_user_data)
 {
   CopaParser parser;
@@ -649,6 +664,8 @@ copa_read_fd (int fd,
   memset (parser.read_buffer, 0, BUFFER_SIZE);
   parser.block_start = block_start;
   parser.block_start_user_data = block_start_user_data;
+  parser.block_end = block_end;
+  parser.block_end_user_data = block_end_user_data;
   parser.assign = assign;
   parser.assign_user_data = assign_user_data;
   parser.status = COPA_OK;
@@ -676,13 +693,15 @@ copa_read_fd (int fd,
 int
 copa_read (char * path,
 	   CopaBlockStart block_start, void * block_start_user_data,
+	   CopaBlockEnd block_end, void * block_end_user_data,
 	   CopaAssign assign, void * assign_user_data)
 {
   int fd;
 
   if ((fd = open (path, O_RDONLY)) == -1) return COPA_SYS_ERR;
 
-  copa_read_fd (fd, block_start, block_start_user_data, assign, assign_user_data);
+  copa_read_fd (fd, block_start, block_start_user_data, block_end, block_end_user_data,
+		  assign, assign_user_data);
 
   return 0;
 }

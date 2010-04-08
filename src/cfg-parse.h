@@ -47,7 +47,7 @@ typedef enum {
 } CopaStatus;
 
 /**
- * Signature of a callback to be called when a <Block> is found.
+ * Signature of a callback to be called when a <block> is found.
  * \param name The name of the block
  * \param user_data A generic pointer you have provided earlier
  * \retval COPA_STOP_ERR Stop all parsing, return COPA_STOP_ERR to
@@ -60,6 +60,18 @@ typedef enum {
  *         .ini file, COPA_OK will be returned to copa_read() or copa_read_fd()
  */
 typedef CopaStatus (*CopaBlockStart) (const char * name, void * user_data);
+
+/**
+ * Signature of a callback to be called when a </block> end is found.
+ * \param name The name of the block
+ * \param user_data A generic pointer you have provided earlier
+ * \retval COPA_STOP_ERR Stop all parsing, return COPA_STOP_ERR to
+ *         copa_read() or copa_read_fd()
+ * \retval COPA_OK Continue
+ * \retval COPA_STOP Stop all parsing, return COPA_STOP to copa_read() or
+ *         copa_read_fd()
+ */
+typedef CopaStatus (*CopaBlockEnd) (const char * name, void * user_data);
 
 /**
  * Signature of a callback to be called when an assignment is found.
@@ -77,12 +89,16 @@ typedef CopaStatus (*CopaAssign) (const char * name, const char * value,
  * \param block A callback for Copa to call when a new <block> is found
  * \param block_user_data Arbitrary data you wish to pass to your
  *        \a block callback.
+ * \param block_end A callback for Copa to call when a </block> is found
+ * \param block_end_user_data Arbitrary data you wish to pass to your
+ *        \a block_end callback.
  * \param assign A callback for Copa to call when a new assignment is found
  * \param assign_user_data Arbitrary data you wish to pass to your
  *        \a assign callback.
  */
 CopaStatus copa_read (char * path,
 		      CopaBlockStart block_start, void * block_start_user_data,
+		      CopaBlockEnd block_end, void * block_end_user_data,
 		      CopaAssign assign, void * assign_user_data);
 
 /**
@@ -91,12 +107,16 @@ CopaStatus copa_read (char * path,
  * \param block_start A callback for Copa to call when a new <block> is found
  * \param block_start_user_data Arbitrary data you wish to pass to your
  *        \a block_start callback.
+ * \param block_end A callback for Copa to call when a </block> is found
+ * \param block_end_user_data Arbitrary data you wish to pass to your
+ *        \a block_end callback.
  * \param assign A callback for Copa to call when a new assignment is found
  * \param assign_user_data Arbitrary data you wish to pass to your
  *        \a assign callback.
  */
 int copa_read_fd (int fd,
 		  CopaBlockStart block_start, void * block_start_user_data,
+		  CopaBlockEnd block_end, void * block_end_user_data,
 		  CopaAssign assign, void * assign_user_data);
 
 #endif /* __CFG_PARSE_H__ */
