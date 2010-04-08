@@ -4,6 +4,7 @@
 
 #include "cfg-read.h"
 #include "cfg-parse.h"
+#include "list.h"
 
 static CopaStatus
 cfg_read_block_start (const char * name, void * user_data)
@@ -62,6 +63,8 @@ cfg_read (const char * path)
 
   cfg->dictionary = dictionary_new ();
   cfg->block_dict = NULL;
+
+  cfg->resources = list_new ();
 
   status = copa_read (path, cfg_read_block_start, cfg,
 		      cfg_read_block_end, cfg,

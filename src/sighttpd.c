@@ -50,7 +50,7 @@ struct sighttpd * sighttpd_init (struct cfg * cfg)
 
         sighttpd->port = port;
 
-	sighttpd->resources = list_new();
+	sighttpd->resources = cfg->resources;
 
 	sighttpd->resources = list_append (sighttpd->resources, status_resource(sighttpd));
 	sighttpd->resources = list_join (sighttpd->resources, fdstream_resources(cfg->dictionary));
