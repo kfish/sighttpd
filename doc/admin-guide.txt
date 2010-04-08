@@ -22,10 +22,10 @@ the path /date.txt (eg. http://localhost/date.txt):
 sighttpd.conf:
 
 -----
-Listen = 3000
+Listen 3000
 
-FDStreamStdin = "/date.txt"
-FDStreamContentType = "text/plain"
+FDStreamStdin "/date.txt"
+FDStreamContentType "text/plain"
 -----
 
 Then, run:
@@ -55,10 +55,10 @@ sighttpd-0.9.0).
 sighttpd.conf:
 
 -----
-Listen = 3000
+Listen 3000
 
-FDStreamStdin = "/stream.264"
-FDStreamContentType = "video/mp4"
+FDStreamStdin "/stream.264"
+FDStreamContentType "video/mp4"
 -----
 
 Then run your streaming video input, eg:
@@ -77,10 +77,10 @@ sighttpd-0.9.0).
 sighttpd.conf:
 
 -----
-Listen = 3000
+Listen 3000
 
-FDStreamStdin = "/stream.264"
-FDStreamContentType = "multipart/x-mixed-replace; boundary=++++++++"
+FDStreamStdin "/stream.264"
+FDStreamContentType "multipart/x-mixed-replace; boundary=++++++++"
 -----
 
 This configuration expects that a series of jpeg comes in from stdin. At
