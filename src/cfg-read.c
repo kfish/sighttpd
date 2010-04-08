@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "dictionary.h"
+#include "cfg-read.h"
 #include "cfg-parse.h"
 
 static CopaStatus
@@ -19,22 +19,31 @@ cfg_read_block_end (const char * name, void * user_data)
 static CopaStatus
 cfg_read_assign (const char * name, const char * value, void * user_data)
 {
-  Dictionary * dictionary = (Dictionary *) user_data;
+  struct cfg * cfg = (struct cfg *) user_data;
 
-  dictionary_insert (dictionary, name, value);
+  dictionary_insert (cfg->dictionary, name, value);
 
   return COPA_OK;
 }
 
-int
-cfg_read (const char * path, Dictionary * dictionary)
+struct cfg *
+cfg_read (const char * path)
 {
   CopaStatus status;
+  struct cfg * cfg;
 
-  status = copa_read (path, cfg_read_block_start, dictionary,
-		      cfg_read_block_end, dictionary,
-		      cfg_read_assign, dictionary);
+  cfg = calloc (1, sizeof(*cfg));
+  cfg->dictionary = dictionary_new ();
 
-  return (status == COPA_OK) ? 0 : -1;
+  status = copa_read (path, cfg_read_block_start, cfg,
+		      cfg_read_block_end, cfg,
+		      cfg_read_assign, cfg);
+
+  if (status != COPA_OK) {
+    free (cfg);
+    return NULL;
+  }
+
+  return cfg;
 }
 
