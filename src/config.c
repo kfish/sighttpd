@@ -5,7 +5,7 @@
 #include "cfg-parse.h"
 
 static CopaStatus
-config_section (const char * name, void * user_data)
+config_block_start (const char * name, void * user_data)
 {
   return COPA_OK;
 }
@@ -25,7 +25,7 @@ config_read (const char * path, Dictionary * dictionary)
 {
   CopaStatus status;
 
-  status = copa_read (path, config_section, dictionary,
+  status = copa_read (path, config_block_start, dictionary,
 		      config_assign, dictionary);
 
   return (status == COPA_OK) ? 0 : -1;

@@ -76,8 +76,8 @@ typedef struct _CopaParser CopaParser;
 
 struct _CopaParser {
   char read_buffer[BUFFER_SIZE];
-  CopaSection section;
-  void * section_user_data;
+  CopaBlockStart block_start;
+  void * block_start_user_data;
   CopaAssign assign;
   void * assign_user_data;
   CopaStatus status;
@@ -578,30 +578,30 @@ copa_parse_assignment (CopaParser * parser)
 }
 
 static int
-copa_parse_section (CopaParser * parser)
+copa_parse_block (CopaParser * parser)
 {
-  char * section;
+  char * block;
 
   if (!parser->active) return -1;
 
   if (!copa_assert_and_pass (parser, X_LBRACKET)) return -1;
 
-  if ((section = copa_slurp_to (parser, X_RBRACKET,
+  if ((block = copa_slurp_to (parser, X_RBRACKET,
 				X_COMMENT | X_NEWLINE)) == NULL) {
 #ifdef DEBUG
-    printf ("copa_parse_section: FAILED\n");
+    printf ("copa_parse_block: FAILED\n");
 #endif
     return -1;
   } else if (!copa_assert_and_pass (parser, X_RBRACKET)) {
 #ifdef DEBUG
-    printf ("copa_parse_section: did not get ]\n");
+    printf ("copa_parse_block: did not get >\n");
 #endif
-    free (section);
+    free (block);
     return -1;
   }
 
-  if (parser->section) {
-    parser->status = parser->section (section, parser->section_user_data);
+  if (parser->block_start) {
+    parser->status = parser->block_start (block, parser->block_start_user_data);
   }
 
   return 0;
@@ -626,9 +626,9 @@ copa_parse_line (CopaParser * parser)
     copa_skip_to (parser, X_NEWLINE);
   } else if (copa_cin (c, X_LBRACKET)) {
 #ifdef DEBUG
-    printf ("copa_parse_line: got SECTION\n");
+    printf ("copa_parse_line: got BLOCK\n");
 #endif
-    copa_parse_section (parser);
+    copa_parse_block (parser);
   } else {
 #ifdef DEBUG
     printf ("copa_parse_line: attempt ASSIGNMENT\n");
@@ -641,14 +641,14 @@ copa_parse_line (CopaParser * parser)
 
 int
 copa_read_fd (int fd,
-	      CopaSection section, void * section_user_data,
+	      CopaBlockStart block_start, void * block_start_user_data,
 	      CopaAssign assign, void * assign_user_data)
 {
   CopaParser parser;
 
   memset (parser.read_buffer, 0, BUFFER_SIZE);
-  parser.section = section;
-  parser.section_user_data = section_user_data;
+  parser.block_start = block_start;
+  parser.block_start_user_data = block_start_user_data;
   parser.assign = assign;
   parser.assign_user_data = assign_user_data;
   parser.status = COPA_OK;
@@ -666,8 +666,8 @@ copa_read_fd (int fd,
 
   while (parser.active) copa_parse_line (&parser);
 
-  /* If the parse finished in a status of SKIP_SECTION, return OK */
-  if (parser.status == COPA_SKIP_SECTION)
+  /* If the parse finished in a status of SKIP_BLOCK, return OK */
+  if (parser.status == COPA_SKIP_BLOCK)
     parser.status = COPA_OK;
 
   return parser.status;
@@ -675,14 +675,14 @@ copa_read_fd (int fd,
 
 int
 copa_read (char * path,
-	   CopaSection section, void * section_user_data,
+	   CopaBlockStart block_start, void * block_start_user_data,
 	   CopaAssign assign, void * assign_user_data)
 {
   int fd;
 
   if ((fd = open (path, O_RDONLY)) == -1) return COPA_SYS_ERR;
 
-  copa_read_fd (fd, section, section_user_data, assign, assign_user_data);
+  copa_read_fd (fd, block_start, block_start_user_data, assign, assign_user_data);
 
   return 0;
 }
