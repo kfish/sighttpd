@@ -5,6 +5,7 @@
 
 struct cfg {
   Dictionary * dictionary;
+  Dictionary * block_dict;
 };
 
 struct cfg * cfg_read (const char * path);
