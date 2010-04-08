@@ -31,6 +31,10 @@ cfg_read_block_end (const char * name, void * user_data)
 	  return COPA_STOP_ERR;
   }
 
+  if (!strncmp (name, "StaticText", 10)) {
+	  cfg->resources = list_join (cfg->resources, statictext_resources (cfg->block_dict));
+  }
+
   dictionary_delete (cfg->block_dict);
   cfg->block_dict = NULL;
 
