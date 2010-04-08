@@ -117,7 +117,7 @@ copa_cin (char c, int char_class)
     if (isspace(c)) return TRUE;
 
   if (char_class & X_COMMENT)
-    if (c == ';' || c == '#') return TRUE;
+    if (c == '#') return TRUE;
 
   if (char_class & X_LBRACKET)
     if (c == '[') return TRUE;
