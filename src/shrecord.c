@@ -689,7 +689,7 @@ shrecord_head (http_request * request, params_t * request_headers, const char **
 
         *status_line = http_status_line (HTTP_STATUS_OK);
 
-        r = params_append (r, "Content-Type", "text/plain");
+        r = params_append (r, "Content-Type", "video/mp4");
         snprintf (length, 16, "%d", strlen (SHRECORD_STATICTEXT));
         *response_headers = params_append (r, "Content-Length", length);
 }
