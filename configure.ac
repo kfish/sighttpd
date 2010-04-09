@@ -98,7 +98,7 @@ AC_CHECK_FUNCS([bzero clock_gettime memset socket strcasecmp strcspn strdup strs
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
-src/shrec/Makefile
+src/shrecord/Makefile
 doc/Makefile
 examples/Makefile
 ])

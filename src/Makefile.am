@@ -1,4 +1,4 @@
-SUBDIRS = shrec
+SUBDIRS = shrecord
 
 bin_PROGRAMS = sighttpd
 
