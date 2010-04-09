@@ -1,5 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
+if HAVE_SHCODECS
+if HAVE_SHVEU
+if HAVE_UIOMUX
+
 INCLUDES = -I$(top_builddir) \
            -I$(top_srcdir)/include
 
@@ -21,3 +25,7 @@ libshrecord_a_SOURCES = \
 	ControlFileUtil.c
 
 libshrecord_a_CFLAGS = $(SHCODECS_CFLAGS) $(SHVEU_CFLAGS) $(UIOMUX_CFLAGS)
+
+endif
+endif
+endif
