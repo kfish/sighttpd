@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <netdb.h>
 
+#include "cfg-read.h"
 #include "dictionary.h"
 #include "sighttpd.h"
 #include "resource.h"
@@ -18,7 +19,7 @@
 #include "kongou.h"
 #include "statictext.h"
 
-struct sighttpd * sighttpd_init (Dictionary * config)
+struct sighttpd * sighttpd_init (struct cfg * cfg)
 {
         struct sighttpd * sighttpd;
         const char *portname;
@@ -27,7 +28,7 @@ struct sighttpd * sighttpd_init (Dictionary * config)
         if ((sighttpd = malloc (sizeof(*sighttpd))) == NULL)
                 return NULL;
 
-        portname = dictionary_lookup (config, "Listen");
+        portname = dictionary_lookup (cfg->dictionary, "Listen");
         if (portname == NULL) {
                 fprintf (stderr, "Portname not specified.\n");
                 exit (1);
@@ -49,14 +50,14 @@ struct sighttpd * sighttpd_init (Dictionary * config)
 
         sighttpd->port = port;
 
-	sighttpd->resources = list_new();
+	sighttpd->resources = cfg->resources;
 
 	sighttpd->resources = list_append (sighttpd->resources, status_resource(sighttpd));
-	sighttpd->resources = list_join (sighttpd->resources, fdstream_resources(config));
+	sighttpd->resources = list_join (sighttpd->resources, fdstream_resources(cfg->dictionary));
 	sighttpd->resources = list_append (sighttpd->resources, flim_resource());
 	sighttpd->resources = list_append (sighttpd->resources, uiomux_resource());
 	sighttpd->resources = list_append (sighttpd->resources, kongou_resource());
-	sighttpd->resources = list_join (sighttpd->resources, statictext_resources (config));
+	sighttpd->resources = list_join (sighttpd->resources, statictext_resources (cfg->dictionary));
 
         return sighttpd;
 }

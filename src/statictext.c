@@ -73,8 +73,8 @@ statictext_resources (Dictionary * config)
 
 	l = list_new();
 
-	path = dictionary_lookup (config, "StaticTextPath");
-	text = dictionary_lookup (config, "StaticText");
+	path = dictionary_lookup (config, "Path");
+	text = dictionary_lookup (config, "Text");
 
 	if (path && text)
 		l = list_append (l, statictext_resource (path, text));

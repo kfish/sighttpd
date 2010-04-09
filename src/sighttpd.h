@@ -1,7 +1,7 @@
 #ifndef __SIGHTTPD_H__
 #define __SIGHTTPD_H__
 
-#include "dictionary.h"
+#include "cfg-read.h"
 #include "list.h"
 
 struct sighttpd {
@@ -14,7 +14,7 @@ struct sighttpd_child {
         int accept_fd;
 };
 
-struct sighttpd * sighttpd_init (Dictionary * config);
+struct sighttpd * sighttpd_init (struct cfg * cfg);
 void sighttpd_close (struct sighttpd * sighttpd);
 
 struct sighttpd_child * sighttpd_child_new (struct sighttpd * sighttpd, int accept_fd);
