@@ -412,7 +412,7 @@ struct camera_data * get_camera (char * devicename, int width, int height)
 	return &pvt->cameras[i];
 }
 
-int main(int argc, char *argv[])
+int shrec_main(int argc, char *argv[])
 {
 	struct private_data *pvt;
 	int return_code, rc;

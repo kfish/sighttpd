@@ -49,6 +49,15 @@ http_tests = \
 http_date_test_SOURCES = http-date.c http-date_test.c
 http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 
+# SHRecord
+if HAVE_SHCODECS
+if HAVE_SHVEU
+if HAVE_UIOMUX
+shrecord_libs = $(builddir)/shrecord/libshrecord.a $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
+endif
+endif
+endif
+
 # Main
 noinst_HEADERS = \
 	$(ds_headers) \
@@ -86,7 +95,7 @@ sighttpd_SOURCES = \
         status.c \
         uiomux.c
 
-sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
+sighttpd_LDFLAGS = $(shrecord_libs) $(PTHREAD_LIBS) $(RT_LIBS)
 
 # Unit tests
 test: check
