@@ -4,3 +4,20 @@ file removing that task, in the same commit.
 
 Dual encode
 	* Add camera encode: merge shcodecs-record into a module
+
+Ogg capture streaming
+	* camera -> theora (oggz + libtheora)
+	* add vorbis support (fishsound)
+	* oggz-chop / Media Fragments
+
+V4L2 control interface
+	Currently have a kongou interface, using kgctrl.
+	* check current ctl method, discuss
+	* make a v4l2 control interface, querying v4l2 device for
+	  capabilities and configuring appropriately
+
+HTML templating
+	* add templating of HTML outputs (status, statictext, uiomux, kongou)
+	* add default sighttpd branding
+	* add renesas branding
+	* add xiph branding
