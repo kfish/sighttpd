@@ -5,7 +5,8 @@ if HAVE_SHVEU
 if HAVE_UIOMUX
 
 INCLUDES = -I$(top_builddir) \
-           -I$(top_srcdir)/include
+           -I$(top_srcdir)/include \
+	   -I$(top_srcdir)/src
 
 noinst_LIBRARIES = libshrecord.a
 

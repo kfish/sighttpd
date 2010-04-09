@@ -47,6 +47,11 @@
 #include <shveu/shveu.h>
 #include <shcodecs/shcodecs_encoder.h>
 
+#include "http-reqline.h"
+#include "http-status.h"
+#include "params.h"
+#include "resource.h"
+
 #include "avcbencsmp.h"
 #include "capture.h"
 #include "ControlFileUtil.h"
@@ -61,6 +66,11 @@
 
 /* Maximum number of encoders per camera */
 #define MAX_ENCODERS 8
+
+struct shrecord {
+	char * path;
+	char * ctlfile;
+};
 
 struct camera_data {
 	char * devicename;
@@ -659,3 +669,75 @@ exit_err:
 	exit (1);
 }
 
+static int
+shrecord_check (http_request * request, void * data)
+{
+	struct shrecord * st = (struct shrecord *)data;
+
+        return !strncmp (request->path, st->path, strlen(st->path));
+}
+
+#define SHRECORD_STATICTEXT "<<< SHRecord >>>"
+
+static void
+shrecord_head (http_request * request, params_t * request_headers, const char ** status_line,
+		params_t ** response_headers, void * data)
+{
+	struct shrecord * st = (struct shrecord *)data;
+	params_t * r = *response_headers;
+        char length[16];
+
+        *status_line = http_status_line (HTTP_STATUS_OK);
+
+        r = params_append (r, "Content-Type", "text/plain");
+        snprintf (length, 16, "%d", strlen (SHRECORD_STATICTEXT));
+        *response_headers = params_append (r, "Content-Length", length);
+}
+
+static void
+shrecord_body (int fd, http_request * request, params_t * request_headers, void * data)
+{
+	struct shrecord * st = (struct shrecord *)data;
+
+        write (fd, SHRECORD_STATICTEXT, strlen(SHRECORD_STATICTEXT));
+}
+
+static void
+shrecord_delete (void * data)
+{
+	struct shrecord * st = (struct shrecord *)data;
+
+	free (st);
+}
+
+struct resource *
+shrecord_resource (char * path, char * ctlfile)
+{
+	struct shrecord * st;
+
+	if ((st = calloc (1, sizeof(*st))) == NULL)
+		return NULL;
+
+	st->path = path;
+	st->ctlfile = ctlfile;
+
+	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, st);
+}
+
+list_t *
+shrecord_resources (Dictionary * config)
+{
+	list_t * l;
+	const char * path;
+	const char * ctlfile;
+
+	l = list_new();
+
+	path = dictionary_lookup (config, "Path");
+	ctlfile = dictionary_lookup (config, "CtlFile");
+
+	if (path && ctlfile)
+		l = list_append (l, shrecord_resource (path, ctlfile));
+
+	return l;
+}

@@ -53,7 +53,7 @@ http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 if HAVE_SHCODECS
 if HAVE_SHVEU
 if HAVE_UIOMUX
-shrecord_libs = $(builddir)/shrecord/libshrecord.a $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
+shrecord_libs = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS) $(builddir)/shrecord/libshrecord.a
 endif
 endif
 endif
