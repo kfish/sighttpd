@@ -1,5 +1,3 @@
-SUBDIRS = shrecord
-
 bin_PROGRAMS = sighttpd
 
 # Data structures
@@ -53,7 +51,22 @@ http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 if HAVE_SHCODECS
 if HAVE_SHVEU
 if HAVE_UIOMUX
-shrecord_libs = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS) $(builddir)/shrecord/libshrecord.a
+shrecord_headers = \
+	avcbencsmp.h \
+	capture.h \
+	framerate.h \
+	thrqueue.h \
+	ControlFileUtil.h
+
+shrecord_sources = \
+	shrecord.c \
+	capture.c \
+	display.c \
+	framerate.c \
+	thrqueue.c \
+	ControlFileUtil.c
+
+shrecord_libs = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
 endif
 endif
 endif
@@ -62,6 +75,7 @@ endif
 noinst_HEADERS = \
 	$(ds_headers) \
 	$(http_headers) \
+	$(shrecord_headers) \
 	sighttpd.h \
         log.h \
 	resource.h \
@@ -80,6 +94,7 @@ noinst_HEADERS = \
 sighttpd_SOURCES = \
 	$(ds_sources) \
 	$(http_sources) \
+	$(shrecord_sources) \
 	sighttpd.c \
 	main.c \
         log.c \
