@@ -3,7 +3,7 @@
 INCLUDES = -I$(top_builddir) \
            -I$(top_srcdir)/include
 
-bin_PROGRAMS = shrecord
+noinst_LIBRARIES = libshrecord.a
 
 noinst_HEADERS = \
 	avcbencsmp.h \
@@ -12,7 +12,7 @@ noinst_HEADERS = \
 	thrqueue.h \
 	ControlFileUtil.h
 
-shrecord_SOURCES = \
+libshrecord_a_SOURCES = \
 	shrecord.c \
 	capture.c \
 	display.c \
@@ -20,5 +20,4 @@ shrecord_SOURCES = \
 	thrqueue.c \
 	ControlFileUtil.c
 
-shrecord_CFLAGS = $(SHCODECS_CFLAGS) $(SHVEU_CFLAGS) $(UIOMUX_CFLAGS)
-shrecord_LDADD = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS) -lrt -lpthread
+libshrecord_a_CFLAGS = $(SHCODECS_CFLAGS) $(SHVEU_CFLAGS) $(UIOMUX_CFLAGS)
