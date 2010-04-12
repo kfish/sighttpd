@@ -1,3 +1,7 @@
+/*
+   Copyright (C) 2009 Conrad Parker
+*/
+
 /* gcc timer.c -o timer -lrt */
 
 #include <sys/timerfd.h>

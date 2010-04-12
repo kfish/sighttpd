@@ -1,3 +1,7 @@
+/*
+   Copyright (C) 2009 Conrad Parker
+*/
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

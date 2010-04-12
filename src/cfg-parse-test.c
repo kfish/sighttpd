@@ -1,3 +1,6 @@
+/*
+   Copyright (C) 2005 Conrad Parker
+*/
 
 #include <stdio.h>
 #include <stdlib.h>

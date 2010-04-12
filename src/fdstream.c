@@ -1,3 +1,7 @@
+/*
+   Copyright (C) 2009 Conrad Parker
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>

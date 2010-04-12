@@ -1,3 +1,6 @@
+/*
+   Copyright (C) 2005 Conrad Parker
+*/
 
 #ifndef __DICTIONARY_H__
 #define __DICTIONARY_H__

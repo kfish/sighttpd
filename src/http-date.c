@@ -1,3 +1,7 @@
+/*
+   Copyright (C) 2009 Conrad Parker
+*/
+
 #include "config.h"
 
 #include <stdio.h>
