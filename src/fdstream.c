@@ -115,8 +115,8 @@ fdstream_resources (Dictionary * config)
 
 	l = list_new();
 
-	path = dictionary_lookup (config, "FDStreamStdin");
-	ctype = dictionary_lookup (config, "FDStreamContentType");
+	path = dictionary_lookup (config, "Path");
+	ctype = dictionary_lookup (config, "Type");
 
 	if (!ctype) ctype = DEFAULT_CONTENT_TYPE;
 

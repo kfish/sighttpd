@@ -24,8 +24,10 @@ sighttpd.conf:
 -----
 Listen 3000
 
-FDStreamStdin "/date.txt"
-FDStreamContentType "text/plain"
+<Stdin>
+	Path "/date.txt"
+	Type "text/plain"
+</Stdin>
 -----
 
 Then, run:
@@ -57,8 +59,10 @@ sighttpd.conf:
 -----
 Listen 3000
 
-FDStreamStdin "/stream.264"
-FDStreamContentType "video/mp4"
+<Stdin>
+	Path "/stream.264"
+	Type "video/mp4"
+</Stdin>
 -----
 
 Then run your streaming video input, eg:
@@ -79,8 +83,10 @@ sighttpd.conf:
 -----
 Listen 3000
 
-FDStreamStdin "/stream.264"
-FDStreamContentType "multipart/x-mixed-replace; boundary=++++++++"
+<Stdin>
+	Path "/stream.264"
+	Type "multipart/x-mixed-replace; boundary=++++++++"
+</Stdin>
 -----
 
 This configuration expects that a series of jpeg comes in from stdin. At
