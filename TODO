@@ -21,3 +21,11 @@ HTML templating
 	* add default sighttpd branding
 	* add renesas branding
 	* add xiph branding
+
+Config file
+	* make declaration names case insensitive
+
+Plugin methods
+	* make config file section name parsing case insensitive
+	* add plugin name, config file name to plugin structure
+	* dynamic library plugin loading
