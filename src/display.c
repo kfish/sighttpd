@@ -39,6 +39,8 @@
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
+#define HW_ALIGN 2
+
 struct display_t {
 	int fb_handle;
 	struct fb_fix_screeninfo fb_fix;
@@ -206,8 +208,8 @@ int display_update(
 		dst_h = pvt->out_h;
 	}
 	/* Observe hardware alignment */
-	dst_w = dst_w - (dst_w % 4);
-	dst_h = dst_h - (dst_h % 4);
+	dst_w = dst_w - (dst_w % HW_ALIGN);
+	dst_h = dst_h - (dst_h % HW_ALIGN);
 
 	if ((pvt->out_x == -1) && (pvt->out_y == -1)) {
 		/* Center - Assuming 2 bytes per pixel */
@@ -219,8 +221,10 @@ int display_update(
 			+ (pvt->out_x + (pvt->out_y * pvt->lcd_w)) * 2;
 	}
 
+	w = w - (w % HW_ALIGN);
+	h = h - (h % HW_ALIGN);
 	shveu_operation(pvt->veu,
-			py, pc,	(long) w, (long) h, (long) w, SHVEU_YCbCr420,
+			py, pc,	(long) w, (long) h, (long) pitch, SHVEU_YCbCr420,
 			fb_addr, 0UL, dst_w, dst_h, pvt->lcd_w, SHVEU_RGB565,
 			SHVEU_NO_ROT);
 
@@ -246,8 +250,8 @@ int display_set_position(void *p_display, int w, int h, int x, int y)
 	struct display_t *pvt = (struct display_t *)p_display;
 	pvt->out_w = w;
 	pvt->out_h = h;
-	pvt->out_x = x;
-	pvt->out_y = y;
+	pvt->out_x = x - (x % HW_ALIGN);
+	pvt->out_y = y - (y % HW_ALIGN);
 
 	/* Ensure the output is no bigger than the LCD */
 	pvt->out_x = min(pvt->out_x, pvt->lcd_w);
