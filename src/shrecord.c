@@ -124,33 +124,6 @@ struct private_data {
 	int output_frames;
 };
 
-
-static char * optstring = "r:Phv";
-
-#ifdef HAVE_GETOPT_LONG
-static struct option long_options[] = {
-	{ "rotate", required_argument, NULL, 'r'},
-	{ "no-preview", no_argument, NULL, 'P'},
-	{ "help", no_argument, 0, 'h'},
-	{ "version", no_argument, 0, 'v'},
-};
-#endif
-
-static void
-usage (const char * progname)
-{
-  printf ("Usage: %s [options] <control file> ...\n", progname);
-  printf ("Encode video from a V4L2 device using the SH-Mobile VPU, with preview\n");
-  printf ("\nCapture options\n");
-  printf ("  -r 90, --rotate 90   Rotate the camera capture buffer 90 degrees and crop\n");
-  printf ("\nDisplay options\n");
-  printf ("  -P, --no-preview     Disable framebuffer preview\n");
-  printf ("\nMiscellaneous options\n");
-  printf ("  -h, --help           Display this help and exit\n");
-  printf ("  -v, --version        Output version information and exit\n");
-  printf ("\nPlease report bugs to <linux-sh@vger.kernel.org>\n");
-}
-
 void debug_printf(const char *fmt, ...)
 {
 #ifdef DEBUG
@@ -409,7 +382,7 @@ struct camera_data * get_camera (char * devicename, int width, int height)
 	return &pvt->cameras[i];
 }
 
-int shrec_main(int argc, char *argv[])
+int shrecord_run (void)
 {
 	struct private_data *pvt;
 	int return_code, rc;
@@ -417,17 +390,6 @@ int shrec_main(int argc, char *argv[])
 	int c, i=0;
 	long target_fps10;
 	unsigned long rotate_input;
-
-	char * progname;
-	int show_version = 0;
-	int show_help = 0;
-
-	progname = argv[0];
-
-	if (argc == 1) {
-		usage(progname);
-		return 0;
-	}
 
 	pvt = &pvt_data;
 
@@ -438,65 +400,7 @@ int shrec_main(int argc, char *argv[])
 	pvt->output_frames = 0;
 	pvt->rotate_cap = SHVEU_NO_ROT;
 
-	while (1) {
-#ifdef HAVE_GETOPT_LONG
-		c = getopt_long(argc, argv, optstring, long_options, &i);
-#else
-		c = getopt (argc, argv, optstring);
-#endif
-		if (c == -1)
-			break;
-		if (c == ':') {
-			usage (progname);
-			goto exit_err;
-		}
-
-		switch (c) {
-		case 'h': /* help */
-			show_help = 1;
-			break;
-		case 'v': /* version */
-			show_version = 1;
-			break;
-		case 'r':
-			if (optarg) {
-				rotate_input = strtoul(optarg, NULL, 10);
-				if (rotate_input == 1 || rotate_input == 90) {
-					pvt->rotate_cap = SHVEU_ROT_90;
-				}
-			}
-			break;
-		case 'P':
-			pvt->do_preview = 0;
-			break;
-		default:
-			usage(progname);
-			goto exit_err;
-		}
-	}
-
-	if (show_version) {
-		printf ("%s version " VERSION "\n", progname);
-	}
-
-	if (show_help) {
-		usage (progname);
-	}
-
-	if (show_version || show_help) {
-		return 0;
-	}
-
-	if (optind >= argc) {
-	      usage (progname);
-	      goto exit_err;
-	}
-
-	while (optind < argc) {
-		strncpy(pvt->encdata[i++].ctrl_filename, argv[optind++], MAXPATHLEN-1);
-	}
-
-	pvt->nr_encoders = i;
+	/* XXX: pvt->nr_encoders = i; */
 
 	pvt->uiomux = uiomux_open ();
 
