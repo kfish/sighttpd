@@ -384,19 +384,6 @@ void cleanup (void)
 	uiomux_close (pvt->uiomux);
 }
 
-void sig_handler(int sig)
-{
-	cleanup ();
-
-#ifdef DEBUG
-	fprintf (stderr, "Got signal %d\n", sig);
-#endif
-
-	/* Send ourselves the signal: see http://www.cons.org/cracauer/sigint.html */
-	signal(sig, SIG_DFL);
-	kill(getpid(), sig);
-}
-
 struct camera_data * get_camera (char * devicename, int width, int height)
 {
 	struct private_data *pvt = &pvt_data;
@@ -569,9 +556,6 @@ int shrec_main(int argc, char *argv[])
 		}
 		debug_printf("Camera %d resolution:  %dx%d\n", i, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h);
 	}
-
-	signal (SIGINT, sig_handler);
-	signal (SIGPIPE, sig_handler);
 
 	/* VEU initialisation */
 	if (shveu_open() < 0) {
