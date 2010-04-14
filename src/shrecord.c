@@ -67,11 +67,6 @@
 /* Maximum number of encoders per camera */
 #define MAX_ENCODERS 8
 
-struct shrecord {
-	char * path;
-	char * ctlfile;
-};
-
 struct camera_data {
 	char * devicename;
 
@@ -90,6 +85,9 @@ struct camera_data {
 };
 
 struct encode_data {
+	char * path;
+	char * ctlfile;
+
 	char ctrl_filename[MAXPATHLEN];
 	APPLI_INFO ainfo;
 
@@ -560,9 +558,9 @@ exit_err:
 static int
 shrecord_check (http_request * request, void * data)
 {
-	struct shrecord * st = (struct shrecord *)data;
+	struct encode_data * ed = (struct encode_data *)data;
 
-        return !strncmp (request->path, st->path, strlen(st->path));
+        return !strncmp (request->path, ed->path, strlen(ed->path));
 }
 
 #define SHRECORD_STATICTEXT "<<< SHRecord >>>"
@@ -571,7 +569,7 @@ static void
 shrecord_head (http_request * request, params_t * request_headers, const char ** status_line,
 		params_t ** response_headers, void * data)
 {
-	struct shrecord * st = (struct shrecord *)data;
+	struct encode_data * ed = (struct encode_data *)data;
 	params_t * r = *response_headers;
         char length[16];
 
@@ -585,7 +583,7 @@ shrecord_head (http_request * request, params_t * request_headers, const char **
 static void
 shrecord_body (int fd, http_request * request, params_t * request_headers, void * data)
 {
-	struct shrecord * st = (struct shrecord *)data;
+	struct encode_data * ed = (struct encode_data *)data;
 
         write (fd, SHRECORD_STATICTEXT, strlen(SHRECORD_STATICTEXT));
 }
@@ -593,23 +591,23 @@ shrecord_body (int fd, http_request * request, params_t * request_headers, void 
 static void
 shrecord_delete (void * data)
 {
-	struct shrecord * st = (struct shrecord *)data;
+	struct encode_data * ed = (struct encode_data *)data;
 
-	free (st);
+	free (ed);
 }
 
 struct resource *
 shrecord_resource (char * path, char * ctlfile)
 {
-	struct shrecord * st;
+	struct encode_data * ed;
 
-	if ((st = calloc (1, sizeof(*st))) == NULL)
+	if ((ed = calloc (1, sizeof(*ed))) == NULL)
 		return NULL;
 
-	st->path = path;
-	st->ctlfile = ctlfile;
+	ed->path = path;
+	ed->ctlfile = ctlfile;
 
-	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, st);
+	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, ed);
 }
 
 list_t *
