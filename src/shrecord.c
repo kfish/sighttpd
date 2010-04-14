@@ -280,8 +280,10 @@ static int write_output(SHCodecs_Encoder *encoder,
 		}
 	}
 
+#if 0
 	if (fwrite(data, 1, length, encdata->output_fp) < (size_t)length)
 		return -1;
+#endif
 
 	return (alive?0:1);
 }
@@ -390,14 +392,13 @@ int shrecord_run (void)
 
 	pvt = &pvt_data;
 
-	memset (pvt, 0, sizeof(struct private_data));
+	if (pvt->nr_encoders == 0)
+		return 0;
 
 	pvt->do_preview = 1;
 
 	pvt->output_frames = 0;
 	pvt->rotate_cap = SHVEU_NO_ROT;
-
-	/* XXX: pvt->nr_encoders = i; */
 
 	pvt->uiomux = uiomux_open ();
 
