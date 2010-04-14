@@ -52,6 +52,7 @@ if HAVE_SHCODECS
 if HAVE_SHVEU
 if HAVE_UIOMUX
 shrecord_headers = \
+	shrecord.h \
 	avcbencsmp.h \
 	capture.h \
 	framerate.h \
