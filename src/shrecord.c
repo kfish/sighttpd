@@ -88,7 +88,6 @@ struct encode_data {
 	char * path;
 	char * ctlfile;
 
-	char ctrl_filename[MAXPATHLEN];
 	APPLI_INFO ainfo;
 
 	struct camera_data * camera;
@@ -403,16 +402,10 @@ int shrecord_run (void)
 	pvt->uiomux = uiomux_open ();
 
 	for (i=0; i < pvt->nr_encoders; i++) {
-		if ( (strcmp(pvt->encdata[i].ctrl_filename, "-") == 0) ||
-				(pvt->encdata[i].ctrl_filename[0] == '\0') ){
-			fprintf(stderr, "Invalid v4l2 configuration file.\n");
-			return -1;
-		}
-
-		return_code = ctrlfile_get_params(pvt->encdata[i].ctrl_filename,
+		return_code = ctrlfile_get_params(pvt->encdata[i].ctlfile,
 				&pvt->encdata[i].ainfo, &pvt->encdata[i].stream_type);
 		if (return_code < 0) {
-			fprintf(stderr, "Error opening control file %s.\n", pvt->encdata[i].ctrl_filename);
+			fprintf(stderr, "Error opening control file %s.\n", pvt->encdata[i].ctlfile);
 			return -2;
 		}
 
@@ -511,7 +504,7 @@ int shrecord_run (void)
 		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, &pvt->encdata[i]);
 		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, &pvt->encdata[i]);
 
-		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i].ctrl_filename);
+		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i].ctlfile);
 		if (return_code < 0) {
 			fprintf (stderr, "Problem with encoder params in control file!\n");
 			return -9;
