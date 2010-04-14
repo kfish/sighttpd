@@ -111,7 +111,7 @@ struct private_data {
 
 	int nr_encoders;
 	SHCodecs_Encoder *encoders[MAX_ENCODERS];
-	struct encode_data encdata[MAX_ENCODERS];
+	struct encode_data *encdata[MAX_ENCODERS];
 
 	int do_preview;
 	void *display;
@@ -206,7 +206,7 @@ void *convert_main(void *data)
 		cap_c = cap_y + (cam->cap_w * cam->cap_h);
 
 		for (i=0; i < pvt->nr_encoders; i++) {
-			if (pvt->encdata[i].camera != cam) continue;
+			if (pvt->encdata[i]->camera != cam) continue;
 
 			shcodecs_encoder_get_input_physical_addr (pvt->encoders[i], (unsigned int *)&enc_y, (unsigned int *)&enc_c);
 
@@ -217,15 +217,15 @@ void *convert_main(void *data)
 				cap_y, cap_c,
 				cam->cap_w, cam->cap_h, cam->cap_w, SHVEU_YCbCr420,
 				enc_y, enc_c,
-				pvt->encdata[i].enc_w, pvt->encdata[i].enc_h, pvt->encdata[i].enc_w, SHVEU_YCbCr420,
+				pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->enc_w, SHVEU_YCbCr420,
 				pvt->rotate_cap);
 			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
 
 			/* Let the encoder get_input function return */
-			pthread_mutex_unlock(&pvt->encdata[i].encode_start_mutex);
+			pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
 		}
 
-		if (cam == pvt->encdata[0].camera && pvt->do_preview) {
+		if (cam == pvt->encdata[0]->camera && pvt->do_preview) {
 			/* Use the VEU to scale the capture buffer to the frame buffer */
 			uiomux_lock (pvt->uiomux, UIOMUX_SH_VEU);
 			display_update(pvt->display,
@@ -312,17 +312,17 @@ void cleanup (void)
 	}
 
 	for (i=0; i < pvt->nr_encoders; i++) {
-		time = (double)framerate_elapsed_time (pvt->encdata[i].enc_framerate);
+		time = (double)framerate_elapsed_time (pvt->encdata[i]->enc_framerate);
 		time /= 1000000;
 
 		debug_printf("[%d] Elapsed time (encode): %0.3g s\n", i, time);
 		debug_printf("[%d] Encoded %d frames (%.2f fps)\n", i,
-				pvt->encdata[i].enc_framerate->nr_handled,
-			 	framerate_mean_fps (pvt->encdata[i].enc_framerate));
+				pvt->encdata[i]->enc_framerate->nr_handled,
+			 	framerate_mean_fps (pvt->encdata[i]->enc_framerate));
 
 		shcodecs_encoder_close(pvt->encoders[i]);
 
-		framerate_destroy (pvt->encdata[i].enc_framerate);
+		framerate_destroy (pvt->encdata[i]->enc_framerate);
 	}
 
 	alive=0;
@@ -341,9 +341,9 @@ void cleanup (void)
 	shveu_close();
 
 	for (i=0; i < pvt->nr_encoders; i++) {
-		close_output_file(pvt->encdata[i].output_fp);
-		pthread_mutex_unlock(&pvt->encdata[i].encode_start_mutex);
-		pthread_mutex_destroy (&pvt->encdata[i].encode_start_mutex);
+		close_output_file(pvt->encdata[i]->output_fp);
+		pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
+		pthread_mutex_destroy (&pvt->encdata[i]->encode_start_mutex);
 	}
 
 	for (i=0; i < pvt->nr_cameras; i++) {
@@ -450,36 +450,36 @@ int shrecord_run (void)
 	for (i=0; i < pvt->nr_encoders; i++) {
 #if 0
 		if (pvt->rotate_cap == SHVEU_NO_ROT) {
-			pvt->encdata[i].enc_w = pvt->cap_w;
-			pvt->encdata[i].enc_h = pvt->cap_h;
+			pvt->encdata[i]->enc_w = pvt->cap_w;
+			pvt->encdata[i]->enc_h = pvt->cap_h;
 		} else {
-			pvt->encdata[i].enc_w = pvt->cap_h;
-			pvt->encdata[i].enc_h = pvt->cap_h * pvt->cap_h / pvt->cap_w;
+			pvt->encdata[i]->enc_w = pvt->cap_h;
+			pvt->encdata[i]->enc_h = pvt->cap_h * pvt->cap_h / pvt->cap_w;
 			/* Round down to nearest multiple of 16 for VPU */
-			pvt->encdata[i].enc_w = pvt->encdata[i].enc_w - (pvt->encdata[i].enc_w % 16);
-			pvt->encdata[i].enc_h = pvt->encdata[i].enc_h - (pvt->encdata[i].enc_h % 16);
+			pvt->encdata[i]->enc_w = pvt->encdata[i]->enc_w - (pvt->encdata[i]->enc_w % 16);
+			pvt->encdata[i]->enc_h = pvt->encdata[i]->enc_h - (pvt->encdata[i]->enc_h % 16);
 			debug_printf("[%d] Rotating & cropping camera image ...\n", i);
 		}
 #else
 		/* Override the encoding frame size in case of rotation */
 		if (pvt->rotate_cap == SHVEU_NO_ROT) {
-			pvt->encdata[i].enc_w = pvt->encdata[i].ainfo.xpic;
-			pvt->encdata[i].enc_h = pvt->encdata[i].ainfo.ypic;
+			pvt->encdata[i]->enc_w = pvt->encdata[i]->ainfo.xpic;
+			pvt->encdata[i]->enc_h = pvt->encdata[i]->ainfo.ypic;
 		} else {
-			pvt->encdata[i].enc_w = pvt->encdata[i].ainfo.ypic;
-			pvt->encdata[i].enc_h = pvt->encdata[i].ainfo.xpic;
+			pvt->encdata[i]->enc_w = pvt->encdata[i]->ainfo.ypic;
+			pvt->encdata[i]->enc_h = pvt->encdata[i]->ainfo.xpic;
 		}
-		debug_printf("[%d] Encode resolution:  %dx%d\n", i, pvt->encdata[i].enc_w, pvt->encdata[i].enc_h);
+		debug_printf("[%d] Encode resolution:  %dx%d\n", i, pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h);
 #endif
 
 		/* VPU Encoder initialisation */
-		pvt->encdata[i].output_fp = open_output_file(pvt->encdata[i].ainfo.output_file_name_buf);
-		if (pvt->encdata[i].output_fp == NULL) {
+		pvt->encdata[i]->output_fp = open_output_file(pvt->encdata[i]->ainfo.output_file_name_buf);
+		if (pvt->encdata[i]->output_fp == NULL) {
 			fprintf(stderr, "Error opening output file\n");
 			return -8;
 		}
 
-		pvt->encoders[i] = shcodecs_encoder_init(pvt->encdata[i].enc_w, pvt->encdata[i].enc_h, pvt->encdata[i].stream_type);
+		pvt->encoders[i] = shcodecs_encoder_init(pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->stream_type);
 		if (pvt->encoders[i] == NULL) {
 			fprintf(stderr, "shcodecs_encoder_init failed, exiting\n");
 			return -5;
@@ -487,14 +487,14 @@ int shrecord_run (void)
 		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, &pvt->encdata[i]);
 		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, &pvt->encdata[i]);
 
-		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i].ctlfile);
+		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i]->ctlfile);
 		if (return_code < 0) {
 			fprintf (stderr, "Problem with encoder params in control file!\n");
 			return -9;
 		}
 
-		//shcodecs_encoder_set_xpic_size(pvt->encoders[i], pvt->encdata[i].enc_w);
-		//shcodecs_encoder_set_ypic_size(pvt->encoders[i], pvt->encdata[i].enc_h);
+		//shcodecs_encoder_set_xpic_size(pvt->encoders[i], pvt->encdata[i]->enc_w);
+		//shcodecs_encoder_set_ypic_size(pvt->encoders[i], pvt->encdata[i]->enc_h);
 	}
 
 	/* Set up the frame rate timer to match the encode framerate */
@@ -576,7 +576,11 @@ struct resource *
 shrecord_resource (char * path, char * ctlfile)
 {
 	struct encode_data * ed;
+	struct private_data *pvt = &pvt_data;
 	int return_code;
+
+	if (pvt->nr_encoders > MAX_ENCODERS)
+		return NULL;
 
 	if ((ed = calloc (1, sizeof(*ed))) == NULL)
 		return NULL;
@@ -592,6 +596,9 @@ shrecord_resource (char * path, char * ctlfile)
 	}
 
 	ed->camera = get_camera (ed->ainfo.input_file_name_buf, ed->ainfo.xpic, ed->ainfo.ypic);
+
+	pvt->encdata[pvt->nr_encoders] = ed;
+	pvt->nr_encoders++;
 
 #if 0
 	debug_printf("Input file: %s\n", ed->ainfo.input_file_name_buf);
@@ -620,4 +627,12 @@ shrecord_resources (Dictionary * config)
 		l = list_append (l, shrecord_resource (path, ctlfile));
 
 	return l;
+}
+
+int
+shrecord_init (void)
+{
+	memset (&pvt_data, 0, sizeof (pvt_data));
+
+	return 0;
 }
