@@ -15,6 +15,10 @@
 #include "sighttpd.h"
 #include "cfg-read.h"
 
+#ifdef HAVE_SHCODECS
+#include "shrecord.h"
+#endif
+
 /* #define DEBUG */
 
 void panic(char *msg);
@@ -42,6 +46,10 @@ int main(int argc, char *argv[])
 
         progname = argv[0];
 
+#ifdef HAVE_SHCODECS
+	shrecord_init();
+#endif
+
         cfg = cfg_read ("/etc/sighttpd/sighttpd.conf");
 
         if (argc == 2) {
@@ -54,6 +62,9 @@ int main(int argc, char *argv[])
 
 	free (cfg);
 
+#ifdef HAVE_SHCODECS
+	shrecord_run();
+#endif
 	/* Create socket * */
 	sd = socket(PF_INET, SOCK_STREAM, 0);
 	if (sd < 0)
