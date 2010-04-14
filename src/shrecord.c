@@ -401,23 +401,6 @@ int shrecord_run (void)
 
 	pvt->uiomux = uiomux_open ();
 
-	for (i=0; i < pvt->nr_encoders; i++) {
-		return_code = ctrlfile_get_params(pvt->encdata[i].ctlfile,
-				&pvt->encdata[i].ainfo, &pvt->encdata[i].stream_type);
-		if (return_code < 0) {
-			fprintf(stderr, "Error opening control file %s.\n", pvt->encdata[i].ctlfile);
-			return -2;
-		}
-
-		pvt->encdata[i].camera = get_camera (pvt->encdata[i].ainfo.input_file_name_buf, pvt->encdata[i].ainfo.xpic, pvt->encdata[i].ainfo.ypic);
-
-		debug_printf("[%d] Input file: %s\n", i, pvt->encdata[i].ainfo.input_file_name_buf);
-		debug_printf("[%d] Output file: %s\n", i, pvt->encdata[i].ainfo.output_file_name_buf);
-
-		pthread_mutex_init(&pvt->encdata[i].encode_start_mutex, NULL);
-		pthread_mutex_unlock(&pvt->encdata[i].encode_start_mutex);
-	}
-
 	for (i=0; i < pvt->nr_cameras; i++) {
 		/* Initalise the mutexes */
 		pthread_mutex_init(&pvt->cameras[i].capture_start_mutex, NULL);
@@ -593,12 +576,30 @@ struct resource *
 shrecord_resource (char * path, char * ctlfile)
 {
 	struct encode_data * ed;
+	int return_code;
 
 	if ((ed = calloc (1, sizeof(*ed))) == NULL)
 		return NULL;
 
 	ed->path = path;
 	ed->ctlfile = ctlfile;
+
+	return_code = ctrlfile_get_params(ed->ctlfile,
+			&ed->ainfo, &ed->stream_type);
+	if (return_code < 0) {
+		fprintf(stderr, "Error opening control file %s.\n", ed->ctlfile);
+		return NULL;
+	}
+
+	ed->camera = get_camera (ed->ainfo.input_file_name_buf, ed->ainfo.xpic, ed->ainfo.ypic);
+
+#if 0
+	debug_printf("Input file: %s\n", ed->ainfo.input_file_name_buf);
+	debug_printf("Output file: %s\n", ed->ainfo.output_file_name_buf);
+#endif
+
+	pthread_mutex_init(&ed->encode_start_mutex, NULL);
+	pthread_mutex_unlock(&ed->encode_start_mutex);
 
 	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, ed);
 }
