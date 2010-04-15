@@ -106,6 +106,8 @@ struct encode_data {
 struct private_data {
 	UIOMux * uiomux;
 
+	pthread_t main_thread;
+
 	int nr_cameras;
 	struct camera_data cameras[MAX_CAMERAS];
 
@@ -381,19 +383,17 @@ struct camera_data * get_camera (char * devicename, int width, int height)
 	return &pvt->cameras[i];
 }
 
-int shrecord_run (void)
+void * shrecord_main (void * data)
 {
-	struct private_data *pvt;
+	struct private_data *pvt = (struct private_data *)data;
 	int return_code, rc;
 	unsigned int pixel_format;
 	int c, i=0;
 	long target_fps10;
 	unsigned long rotate_input;
 
-	pvt = &pvt_data;
-
 	if (pvt->nr_encoders == 0)
-		return 0;
+		return NULL;
 
 	pvt->do_preview = 1;
 
@@ -415,14 +415,14 @@ int shrecord_run (void)
 		rc = pthread_create(&pvt->cameras[i].convert_thread, NULL, convert_main, &pvt->cameras[i]);
 		if (rc) {
 			fprintf(stderr, "pthread_create failed, exiting\n");
-			return -7;
+			return NULL;
 		}
 
 		/* Camera capture initialisation */
 		pvt->cameras[i].ceu = capture_open_userio(pvt->cameras[i].devicename, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h);
 		if (pvt->cameras[i].ceu == NULL) {
 			fprintf(stderr, "capture_open failed, exiting\n");
-			return -3;
+			return NULL;
 		}
 		capture_set_use_physical(pvt->cameras[i].ceu, 1);
 		pvt->cameras[i].cap_w = capture_get_width(pvt->cameras[i].ceu);
@@ -431,7 +431,7 @@ int shrecord_run (void)
 		pixel_format = capture_get_pixel_format (pvt->cameras[i].ceu);
 		if (pixel_format != V4L2_PIX_FMT_NV12) {
 			fprintf(stderr, "Camera capture pixel format is not supported\n");
-			return -4;
+			return NULL;
 		}
 		debug_printf("Camera %d resolution:  %dx%d\n", i, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h);
 	}
@@ -444,7 +444,7 @@ int shrecord_run (void)
 	if (pvt->do_preview) {
 		pvt->display = display_open(0);
 		if (!pvt->display) {
-			return -5;
+			return NULL;
 		}
 	}
 
@@ -477,13 +477,13 @@ int shrecord_run (void)
 		pvt->encdata[i]->output_fp = open_output_file(pvt->encdata[i]->ainfo.output_file_name_buf);
 		if (pvt->encdata[i]->output_fp == NULL) {
 			fprintf(stderr, "Error opening output file\n");
-			return -8;
+			return NULL;
 		}
 
 		pvt->encoders[i] = shcodecs_encoder_init(pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->stream_type);
 		if (pvt->encoders[i] == NULL) {
 			fprintf(stderr, "shcodecs_encoder_init failed, exiting\n");
-			return -5;
+			return NULL;
 		}
 		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, &pvt->encdata[i]);
 		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, &pvt->encdata[i]);
@@ -491,7 +491,7 @@ int shrecord_run (void)
 		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i]->ctlfile);
 		if (return_code < 0) {
 			fprintf (stderr, "Problem with encoder params in control file!\n");
-			return -9;
+			return NULL;
 		}
 
 		//shcodecs_encoder_set_xpic_size(pvt->encoders[i], pvt->encdata[i]->enc_w);
@@ -511,17 +511,17 @@ int shrecord_run (void)
 		rc = pthread_create(&pvt->cameras[i].capture_thread, NULL, capture_main, &pvt->cameras[i]);
 		if (rc){
 			fprintf(stderr, "pthread_create failed, exiting\n");
-			return -6;
+			return NULL;
 		}
 	}
 
 	rc = shcodecs_encoder_run_multiple(pvt->encoders, pvt->nr_encoders);
 	if (rc < 0) {
 		fprintf(stderr, "Error encoding, error code=%d\n", rc);
-		rc = -10;
+		rc = NULL;
 	}
 	/* Exit ok if shcodecs_encoder_run was stopped cleanly */
-	if (rc == 1) rc = 0;
+	if (rc == 1) rc = NULL; /* ??? */
 
 	cleanup ();
 
@@ -529,7 +529,14 @@ int shrecord_run (void)
 
 exit_err:
 	/* General exit, prior to thread creation */
-	exit (1);
+	return NULL;
+}
+
+int shrecord_run (void)
+{
+	struct private_data *pvt = &pvt_data;
+
+	return pthread_create(&pvt->main_thread, NULL, shrecord_main, pvt);
 }
 
 static int
