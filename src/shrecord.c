@@ -57,6 +57,7 @@
 #include "ControlFileUtil.h"
 #include "framerate.h"
 #include "display.h"
+#include "ringbuffer.h"
 #include "thrqueue.h"
 
 #define DEBUG
@@ -95,10 +96,12 @@ struct encode_data {
 	long stream_type;
 
 	pthread_mutex_t encode_start_mutex;
-	FILE *output_fp;
 
 	unsigned long enc_w;
 	unsigned long enc_h;
+
+	int active;
+        struct ringbuffer rb;
 
 	struct framerate * enc_framerate;
 };
@@ -136,29 +139,6 @@ void debug_printf(const char *fmt, ...)
 struct private_data pvt_data;
 
 static int alive=1;
-
-/* XXX: from avcbeinputuser.c */
-FILE *
-open_output_file(const char *fname)
-{
-	FILE *fp = NULL;
-
-	if (!strcmp (fname, "-"))
-		fp = stdout;
-	else
-		fp = fopen(fname, "wb");
-
-	return fp;
-}
-
-/* close output file */
-void close_output_file(FILE *fp)
-{
-	if (fp != NULL) {
-		fflush(fp);
-		fclose(fp);
-	}
-}
 
 /*****************************************************************************/
 
@@ -282,10 +262,7 @@ static int write_output(SHCodecs_Encoder *encoder,
 		}
 	}
 
-#if 0
-	if (fwrite(data, 1, length, encdata->output_fp) < (size_t)length)
-		return -1;
-#endif
+	ringbuffer_write (&encdata->rb, data, length);
 
 	return (alive?0:1);
 }
@@ -345,7 +322,7 @@ void shrecord_cleanup (void)
 	shveu_close();
 
 	for (i=0; i < pvt->nr_encoders; i++) {
-		close_output_file(pvt->encdata[i]->output_fp);
+		pvt->encdata[i]->active = 0;
 		pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
 		pthread_mutex_destroy (&pvt->encdata[i]->encode_start_mutex);
 	}
@@ -474,12 +451,6 @@ void * shrecord_main (void * data)
 #endif
 
 		/* VPU Encoder initialisation */
-		pvt->encdata[i]->output_fp = open_output_file(pvt->encdata[i]->ainfo.output_file_name_buf);
-		if (pvt->encdata[i]->output_fp == NULL) {
-			fprintf(stderr, "Error opening output file\n");
-			return NULL;
-		}
-
 		pvt->encoders[i] = shcodecs_encoder_init(pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->stream_type);
 		if (pvt->encoders[i] == NULL) {
 			fprintf(stderr, "shcodecs_encoder_init failed, exiting\n");
@@ -547,8 +518,6 @@ shrecord_check (http_request * request, void * data)
         return !strncmp (request->path, ed->path, strlen(ed->path));
 }
 
-#define SHRECORD_STATICTEXT "<<< SHRecord >>>"
-
 static void
 shrecord_head (http_request * request, params_t * request_headers, const char ** status_line,
 		params_t ** response_headers, void * data)
@@ -560,16 +529,36 @@ shrecord_head (http_request * request, params_t * request_headers, const char **
         *status_line = http_status_line (HTTP_STATUS_OK);
 
         r = params_append (r, "Content-Type", "video/mp4");
-        snprintf (length, 16, "%d", strlen (SHRECORD_STATICTEXT));
-        *response_headers = params_append (r, "Content-Length", length);
 }
 
 static void
 shrecord_body (int fd, http_request * request, params_t * request_headers, void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
+        size_t n, avail;
+        int rd;
 
-        write (fd, SHRECORD_STATICTEXT, strlen(SHRECORD_STATICTEXT));
+        rd = ringbuffer_open (&ed->rb);
+
+        while (ed->active) {
+                while ((avail = ringbuffer_avail (&ed->rb, rd)) == 0)
+                        usleep (10000);
+
+#ifdef DEBUG
+                if (avail != 0) printf ("%s: %ld bytes available\n", __func__, avail);
+#endif
+                n = ringbuffer_writefd (fd, &ed->rb, rd);
+                if (n == -1) {
+                        break;
+                }
+
+                fsync (fd);
+#ifdef DEBUG
+                if (n!=0 || avail != 0) printf ("%s: wrote %ld of %ld bytes to socket\n", __func__, n, avail);
+#endif
+        }
+
+        ringbuffer_close (&ed->rb, rd);
 }
 
 static void
@@ -577,6 +566,7 @@ shrecord_delete (void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
 
+        free (ed->rb.data);
 	free (ed);
 }
 
@@ -586,12 +576,19 @@ shrecord_resource (char * path, char * ctlfile)
 	struct encode_data * ed;
 	struct private_data *pvt = &pvt_data;
 	int return_code;
+        unsigned char * data;
+        size_t len = 4096*16*32;
 
 	if (pvt->nr_encoders > MAX_ENCODERS)
 		return NULL;
 
 	if ((ed = calloc (1, sizeof(*ed))) == NULL)
 		return NULL;
+
+        if ((data = malloc (len)) == NULL) {
+                free (ed);
+                return NULL;
+        }
 
 	ed->path = path;
 	ed->ctlfile = ctlfile;
@@ -613,8 +610,12 @@ shrecord_resource (char * path, char * ctlfile)
 	debug_printf("Output file: %s\n", ed->ainfo.output_file_name_buf);
 #endif
 
+        ringbuffer_init (&ed->rb, data, len);
+
 	pthread_mutex_init(&ed->encode_start_mutex, NULL);
 	pthread_mutex_unlock(&ed->encode_start_mutex);
+
+	ed->active = 1;
 
 	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, ed);
 }
