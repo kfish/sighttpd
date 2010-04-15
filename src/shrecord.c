@@ -290,7 +290,7 @@ static int write_output(SHCodecs_Encoder *encoder,
 	return (alive?0:1);
 }
 
-void cleanup (void)
+void shrecord_cleanup (void)
 {
 	double time;
 	struct private_data *pvt = &pvt_data;
@@ -523,7 +523,7 @@ void * shrecord_main (void * data)
 	/* Exit ok if shcodecs_encoder_run was stopped cleanly */
 	if (rc == 1) rc = NULL; /* ??? */
 
-	cleanup ();
+	shrecord_cleanup ();
 
 	return rc;
 
