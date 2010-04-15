@@ -485,8 +485,8 @@ void * shrecord_main (void * data)
 			fprintf(stderr, "shcodecs_encoder_init failed, exiting\n");
 			return NULL;
 		}
-		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, &pvt->encdata[i]);
-		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, &pvt->encdata[i]);
+		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, pvt->encdata[i]);
+		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, pvt->encdata[i]);
 
 		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i]->ctlfile);
 		if (return_code < 0) {
