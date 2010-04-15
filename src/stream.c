@@ -79,34 +79,3 @@ stream_close (struct stream * stream)
 
         free (stream);
 }
-
-int
-stream_stream_body (int fd, struct stream * stream)
-{
-        size_t n, avail;
-        int rd;
-
-        rd = ringbuffer_open (&stream->rb);
-
-        while (stream->active) {
-                while ((avail = ringbuffer_avail (&stream->rb, rd)) == 0)
-                        usleep (10000);
-
-#ifdef DEBUG
-                if (avail != 0) printf ("stream_reader: %ld bytes available\n", avail);
-#endif
-                n = ringbuffer_writefd (fd, &stream->rb, rd);
-                if (n == -1) {
-                        break;
-                }
-                
-                fsync (fd);
-#ifdef DEBUG
-                if (n!=0 || avail != 0) printf ("stream_reader: wrote %ld of %ld bytes to socket\n", n, avail);
-#endif
-        }
-
-        ringbuffer_close (&stream->rb, rd);
-
-        return 0;
-}
