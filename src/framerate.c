@@ -134,6 +134,9 @@ double framerate_mean_fps (struct framerate * framerate)
 {
 	if (framerate == NULL) return -1.0;
 
+	if (framerate->total_elapsed_us == 0)
+		return 0.0;
+
 	return (double)framerate->nr_handled * U_SEC_PER_SEC /
 					framerate->total_elapsed_us;
 }
