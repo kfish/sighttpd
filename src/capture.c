@@ -591,15 +591,13 @@ static void init_device(capture * cap)
 
 static void close_device(capture * cap)
 {
-	uiomux_close(cap->uiomux);
-
 	if (-1 == close(cap->fd))
 		errno_exit("close");
 
 	cap->fd = -1;
 }
 
-static void open_device(capture * cap)
+static void open_device(capture * cap, UIOMux * uiomux)
 {
 	struct stat st; 
 
@@ -625,12 +623,7 @@ static void open_device(capture * cap)
 	}
 
 	/* User mapped memory */
-	cap->uiomux = uiomux_open();
-	if (cap->uiomux == 0) {
-		fprintf(stderr, "Cannot uiomux: %d, %s\n",
-			errno, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	cap->uiomux = uiomux;
 }
 
 void capture_close(capture * cap)
@@ -642,7 +635,7 @@ void capture_close(capture * cap)
 	free(cap);
 }
 
-static capture *capture_open_mode(const char *device_name, int width, int height, int mode)
+static capture *capture_open_mode(const char *device_name, int width, int height, int mode, UIOMux * uiomux)
 {
 	capture *cap;
 
@@ -656,7 +649,7 @@ static capture *capture_open_mode(const char *device_name, int width, int height
 	cap->height = height;
 	cap->use_physical = 0;
 
-	open_device(cap);
+	open_device(cap, uiomux);
 	init_device(cap);
 
 	return cap;
@@ -664,12 +657,12 @@ static capture *capture_open_mode(const char *device_name, int width, int height
 
 capture *capture_open(const char *device_name, int width, int height)
 {
-	return capture_open_mode(device_name, width, height, IO_METHOD_MMAP);
+	return capture_open_mode(device_name, width, height, IO_METHOD_MMAP, NULL);
 }
 
-capture *capture_open_userio(const char *device_name, int width, int height)
+capture *capture_open_userio(const char *device_name, int width, int height, UIOMux * uiomux)
 {
-	return capture_open_mode(device_name, width, height, IO_METHOD_USERPTR);
+	return capture_open_mode(device_name, width, height, IO_METHOD_USERPTR, uiomux);
 }
 
 int capture_get_width(capture * cap)

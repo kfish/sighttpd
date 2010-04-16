@@ -28,7 +28,7 @@ typedef void (*capture_callback) (capture * cap, const unsigned char *frame_data
 
 capture *capture_open(const char *device_name, int width, int height);
 
-capture *capture_open_userio(const char *device_name, int width, int height);
+capture *capture_open_userio(const char *device_name, int width, int height, UIOMux * uiomux);
 
 void capture_close(capture * cap);
 

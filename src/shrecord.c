@@ -407,7 +407,7 @@ void * shrecord_main (void * data)
 		}
 
 		/* Camera capture initialisation */
-		pvt->cameras[i].ceu = capture_open_userio(pvt->cameras[i].devicename, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h);
+		pvt->cameras[i].ceu = capture_open_userio(pvt->cameras[i].devicename, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h, pvt->uiomux);
 		if (pvt->cameras[i].ceu == NULL) {
 			fprintf(stderr, "capture_open failed, exiting\n");
 			return NULL;
