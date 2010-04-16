@@ -39,6 +39,8 @@ cfg_read_block_end (const char * name, void * user_data)
 	  cfg->resources = list_join (cfg->resources, statictext_resources (cfg->block_dict));
   } else if (!strncmp (name, "Stdin", 5)) {
           cfg->resources = list_join (cfg->resources, fdstream_resources (cfg->block_dict));
+  } else if (!strncmp (name, "SHRecord", 8)) {
+	  cfg->resources = list_join (cfg->resources, shrecord_resources (cfg->block_dict));
   }
 
   dictionary_delete (cfg->block_dict);

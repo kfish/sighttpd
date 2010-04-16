@@ -1,4 +1,3 @@
-
 bin_PROGRAMS = sighttpd
 
 # Data structures
@@ -48,10 +47,36 @@ http_tests = \
 http_date_test_SOURCES = http-date.c http-date_test.c
 http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 
+# SHRecord
+if HAVE_SHCODECS
+if HAVE_SHVEU
+if HAVE_UIOMUX
+shrecord_headers = \
+	shrecord.h \
+	avcbencsmp.h \
+	capture.h \
+	framerate.h \
+	thrqueue.h \
+	ControlFileUtil.h
+
+shrecord_sources = \
+	shrecord.c \
+	capture.c \
+	display.c \
+	framerate.c \
+	thrqueue.c \
+	ControlFileUtil.c
+
+shrecord_libs = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
+endif
+endif
+endif
+
 # Main
 noinst_HEADERS = \
 	$(ds_headers) \
 	$(http_headers) \
+	$(shrecord_headers) \
 	sighttpd.h \
         log.h \
 	resource.h \
@@ -70,6 +95,7 @@ noinst_HEADERS = \
 sighttpd_SOURCES = \
 	$(ds_sources) \
 	$(http_sources) \
+	$(shrecord_sources) \
 	sighttpd.c \
 	main.c \
         log.c \
@@ -85,7 +111,7 @@ sighttpd_SOURCES = \
         status.c \
         uiomux.c
 
-sighttpd_LDFLAGS = $(PTHREAD_LIBS) $(RT_LIBS)
+sighttpd_LDFLAGS = $(shrecord_libs) $(PTHREAD_LIBS) $(RT_LIBS)
 
 # Unit tests
 test: check

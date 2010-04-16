@@ -19,6 +19,10 @@
 #include "sighttpd.h"
 #include "cfg-read.h"
 
+#ifdef HAVE_SHCODECS
+#include "shrecord.h"
+#endif
+
 /* #define DEBUG */
 
 void panic(char *msg);
@@ -37,6 +41,22 @@ usage (const char * progname)
         printf ("Please report bugs to <" PACKAGE_BUGREPORT ">\n");
 }
 
+void sig_handler(int sig)
+{
+#ifdef HAVE_SHCODECS
+        shrecord_sighandler ();
+#endif
+
+#ifdef DEBUG
+        fprintf (stderr, "Got signal %d\n", sig);
+#endif
+
+        /* Send ourselves the signal: see http://www.cons.org/cracauer/sigint.html */
+        signal(sig, SIG_DFL);
+        kill(getpid(), sig);
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
@@ -45,6 +65,10 @@ int main(int argc, char *argv[])
         struct cfg * cfg;
 
         progname = argv[0];
+
+#ifdef HAVE_SHCODECS
+	shrecord_init();
+#endif
 
         cfg = cfg_read ("/etc/sighttpd/sighttpd.conf");
 
@@ -57,6 +81,13 @@ int main(int argc, char *argv[])
         sighttpd = sighttpd_init (cfg);
 
 	free (cfg);
+
+#ifdef HAVE_SHCODECS
+	shrecord_run();
+#endif
+
+        signal (SIGINT, sig_handler);
+        signal (SIGPIPE, sig_handler);
 
 	/* Create socket * */
 	sd = socket(PF_INET, SOCK_STREAM, 0);
