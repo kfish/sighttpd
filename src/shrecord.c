@@ -60,7 +60,7 @@
 #include "ringbuffer.h"
 #include "thrqueue.h"
 
-#define DEBUG
+/* #define DEBUG */
 
 /* Maximum number of cameras handled by the program */
 #define MAX_CAMERAS 8
