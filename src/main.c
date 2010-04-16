@@ -40,7 +40,7 @@ usage (const char * progname)
 void sig_handler(int sig)
 {
 #ifdef HAVE_SHCODECS
-        shrecord_cleanup ();
+        shrecord_sighandler ();
 #endif
 
 #ifdef DEBUG

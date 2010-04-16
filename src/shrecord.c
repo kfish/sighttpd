@@ -267,7 +267,8 @@ static int write_output(SHCodecs_Encoder *encoder,
 	return (alive?0:1);
 }
 
-void shrecord_cleanup (void)
+static void
+shrecord_cleanup (void)
 {
 	double time;
 	struct private_data *pvt = &pvt_data;
@@ -333,6 +334,16 @@ void shrecord_cleanup (void)
 	}
 
 	uiomux_close (pvt->uiomux);
+}
+
+void
+shrecord_sighandler (void)
+{
+	struct private_data *pvt = &pvt_data;
+
+	alive = 0;
+
+	pthread_join (pvt->main_thread, NULL);
 }
 
 struct camera_data * get_camera (char * devicename, int width, int height)
