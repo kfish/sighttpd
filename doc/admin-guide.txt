@@ -130,3 +130,31 @@ examples/mjpeg_test.sh is provided for testing purpose. Execute the following:
 
 Then open 'http://localhost:3000/mjpeg/' with Firefox.
 
+
+3. Streaming video with SHRecord
+--------------------------------
+
+sighttpd includes direct support for capture and encoding on SH-Mobile, using
+libshcodecs, libshveu and libuiomux. The configuration:
+
+-----
+Listen 3000
+
+<SHRecord>
+        Path "/video0/vga.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-vga-stream.ctl"
+</SHRecord>
+
+<SHRecord>
+        Path "/video0/cif.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-cif-stream.ctl"
+</SHRecord>
+-----
+
+will make two H.264 streams appear at:
+
+http://ecovec:3000/video0/vga.264
+http://ecovec:3000/video0/cif.264
+
+The same control files that are used for shcodecs-record can be used - the
+output filename is simply ignored.
