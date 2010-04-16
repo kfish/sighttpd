@@ -611,6 +611,9 @@ shrecord_resource (char * path, char * ctlfile)
 		return NULL;
 	}
 
+	/* Override frames_to_encode to ensure streaming */
+	ed->ainfo.frames_to_encode = -1;
+
 	ed->camera = get_camera (ed->ainfo.input_file_name_buf, ed->ainfo.xpic, ed->ainfo.ypic);
 
 	pvt->encdata[pvt->nr_encoders] = ed;
