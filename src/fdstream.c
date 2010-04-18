@@ -17,6 +17,8 @@
 
 #define DEFAULT_CONTENT_TYPE "video/mp4"
 
+#define x_strdup(s) ((s)?strdup((s)):(NULL))
+
 struct fdstream {
 	const char * path;
 	const char * content_type;
@@ -81,6 +83,9 @@ fdstream_delete (void * data)
 
 	stream_close (st->stream);
 
+	free (st->path);
+	free (st->content_type);
+
 	free (st);
 }
 
@@ -92,8 +97,8 @@ fdstream_resource (const char * path, int fd, const char * content_type)
 	if ((st = calloc (1, sizeof(*st))) == NULL)
 		return NULL;
 
-	st->path = path;
-	st->content_type = content_type;
+	st->path = x_strdup (path);
+	st->content_type = x_strdup (content_type);
 	st->stream = stream_open (fd);
 
 	return resource_new (fdstream_check, fdstream_head, fdstream_body, fdstream_delete, st);
