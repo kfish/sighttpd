@@ -10,6 +10,8 @@
 #include "params.h"
 #include "resource.h"
 
+#define x_strdup(s) ((s)?strdup((s)):(NULL))
+
 struct statictext {
 	char * path;
 	char * text;
@@ -51,6 +53,9 @@ statictext_delete (void * data)
 {
 	struct statictext * st = (struct statictext *)data;
 
+	free (st->path);
+	free (st->text);
+
 	free (st);
 }
 
@@ -62,8 +67,8 @@ statictext_resource (char * path, char * text)
 	if ((st = calloc (1, sizeof(*st))) == NULL)
 		return NULL;
 
-	st->path = path;
-	st->text = text;
+	st->path = x_strdup(path);
+	st->text = x_strdup(text);
 
 	return resource_new (statictext_check, statictext_head, statictext_body, statictext_delete, st);
 }
