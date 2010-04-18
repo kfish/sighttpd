@@ -348,7 +348,9 @@ x_tree_free_with (x_tree_t * tree, x_free_t free_func)
       if (p->left == n) p->left = NULL;
       else p->right = NULL;
     }
-    free_func (n);
+    if (free_func)
+      free_func (n->data);
+    x_free (n);
   }
 
   x_free (tree);
@@ -359,5 +361,5 @@ x_tree_free_with (x_tree_t * tree, x_free_t free_func)
 x_tree_t *
 x_tree_free (x_tree_t * tree)
 {
-  x_tree_free_with (tree, x_free);
+  x_tree_free_with (tree, NULL);
 }
