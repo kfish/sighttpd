@@ -68,6 +68,8 @@
 /* Maximum number of encoders per camera */
 #define MAX_ENCODERS 8
 
+#define x_strdup(s) ((s)?strdup((s)):(NULL))
+
 struct camera_data {
 	char * devicename;
 
@@ -577,6 +579,8 @@ shrecord_delete (void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
 
+	free (ed->path);
+	free (ed->ctlfile);
         free (ed->rb.data);
 	free (ed);
 }
@@ -601,8 +605,8 @@ shrecord_resource (char * path, char * ctlfile)
                 return NULL;
         }
 
-	ed->path = path;
-	ed->ctlfile = ctlfile;
+	ed->path = x_strdup (path);
+	ed->ctlfile = x_strdup (ctlfile);
 
 	return_code = ctrlfile_get_params(ed->ctlfile,
 			&ed->ainfo, &ed->stream_type);
