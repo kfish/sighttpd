@@ -67,6 +67,7 @@ shrecord_sources = \
 	thrqueue.c \
 	ControlFileUtil.c
 
+shrecord_cflags = $(SHCODECS_CFLAGS) $(SHVEU_CFLAGS) $(UIOMUX_CFLAGS)
 shrecord_libs = $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
 endif
 endif
@@ -111,6 +112,7 @@ sighttpd_SOURCES = \
         status.c \
         uiomux.c
 
+sighttpd_CFLAGS = $(shrecord_cflags)
 sighttpd_LDFLAGS = $(shrecord_libs) $(PTHREAD_LIBS) $(RT_LIBS)
 
 # Unit tests
