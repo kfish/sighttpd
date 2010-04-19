@@ -158,3 +158,18 @@ http://ecovec:3000/video0/cif.264
 
 The same control files that are used for shcodecs-record can be used - the
 output filename is simply ignored.
+
+To disable the on-screen preview, set "Preview off" in one of the SHRecord
+stanzas, eg:
+
+-----
+Listen 3000
+
+<SHRecord>
+        Path "/video0/cif.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-cif-stream.ctl"
+	Preview off
+</SHRecord>
+-----
+
+

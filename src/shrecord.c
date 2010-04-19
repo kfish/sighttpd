@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stropts.h>
 #include <stdarg.h>
 #include <fcntl.h>
@@ -385,8 +386,6 @@ void * shrecord_main (void * data)
 	if (pvt->nr_encoders == 0)
 		return NULL;
 
-	pvt->do_preview = 1;
-
 	pvt->output_frames = 0;
 	pvt->rotate_cap = SHVEU_NO_ROT;
 
@@ -641,9 +640,11 @@ shrecord_resource (char * path, char * ctlfile)
 list_t *
 shrecord_resources (Dictionary * config)
 {
+	struct private_data *pvt = &pvt_data;
 	list_t * l;
 	const char * path;
 	const char * ctlfile;
+	const char * preview;
 
 	l = list_new();
 
@@ -653,13 +654,25 @@ shrecord_resources (Dictionary * config)
 	if (path && ctlfile)
 		l = list_append (l, shrecord_resource (path, ctlfile));
 
+	if ((preview = dictionary_lookup (config, "Preview")) != NULL) {
+		if (!strncasecmp (preview, "on", 2))
+			pvt->do_preview=1;
+		else if (!strncasecmp (preview, "off", 3))
+			pvt->do_preview=0;
+	}
+
 	return l;
 }
 
 int
 shrecord_init (void)
 {
-	memset (&pvt_data, 0, sizeof (pvt_data));
+	struct private_data *pvt = &pvt_data;
+
+	memset (pvt, 0, sizeof (pvt_data));
+
+	/* Set preview on by default, allow to turn off by setting "Preview off" */
+	pvt->do_preview = 1;
 
 	return 0;
 }
