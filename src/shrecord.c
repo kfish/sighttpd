@@ -43,6 +43,7 @@
 #include <linux/ioctl.h>
 #include <pthread.h>
 #include <errno.h>
+#include <sys/prctl.h>
 
 #include <uiomux/uiomux.h>
 #include <shveu/shveu.h>
@@ -668,6 +669,10 @@ int
 shrecord_init (void)
 {
 	struct private_data *pvt = &pvt_data;
+	int ret;
+
+	if (prctl (PR_SET_UNALIGN, PR_UNALIGN_NOPRINT, 0, 0, 0) == -1)
+		perror ("prctl");
 
 	memset (pvt, 0, sizeof (pvt_data));
 
