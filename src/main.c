@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <resolv.h>
@@ -29,16 +30,28 @@ void panic(char *msg);
 
 #define panic(m)	{perror(m); abort();}
 
+#define DEFAULT_CONFIG_FILENAME "/etc/sighttpd/sighttpd.conf"
+
 static char * progname;
+
+static char * optstring = "f:hv";
+
+#ifdef HAVE_GETOPT_LONG
+static struct option long_options[] = {
+	{ "config", required_argument, NULL, 'f'},
+	{ "help", no_argument, 0, 'h'},
+	{ "version", no_argument, 0, 'v'},
+};
+#endif
 
 static void
 usage (const char * progname)
 {
-        //printf ("Usage: %s [options] <port>\n", progname);
-        printf ("Usage: %s <port>\n", progname);
+        printf ("Usage: %s [options] <port>\n", progname);
         printf ("A stream ingress HTTP server.\n");
-        printf ("\n");
-        printf ("Please report bugs to <" PACKAGE_BUGREPORT ">\n");
+	printf ("\nConfiguration options\n");
+	printf ("  -f filename       Specify configuration filename [/etc/sighttpd/sighttpd.conf]\n");
+        printf ("\nPlease report bugs to <" PACKAGE_BUGREPORT ">\n");
 }
 
 void sig_handler(int sig)
@@ -63,6 +76,10 @@ int main(int argc, char *argv[])
 	int sd;
         struct sighttpd * sighttpd;
         struct cfg * cfg;
+	char * config_filename = DEFAULT_CONFIG_FILENAME;
+	int c;
+	int show_version = 0;
+	int show_help = 0;
 
         progname = argv[0];
 
@@ -70,10 +87,58 @@ int main(int argc, char *argv[])
 	shrecord_init();
 #endif
 
-        cfg = cfg_read ("/etc/sighttpd/sighttpd.conf");
+	while (1) {
+#ifdef HAVE_GETOPT_LONG
+		c = getopt_long(argc, argv, optstring, long_options, &i);
+#else
+		c = getopt (argc, argv, optstring);
+#endif
+		if (c == -1)
+			break;
+		if (c == ':') {
+			usage (progname);
+			return 1;
+		}
 
-        if (argc == 2) {
-		dictionary_insert (cfg->dictionary, "Listen", argv[1]);
+		switch (c) {
+		case 'h': /* help */
+			show_help = 1;
+			break;
+		case 'v': /* version */
+			show_version = 1;
+			break;
+		case 'f':
+			if (optarg) {
+				config_filename = optarg;
+			}
+			break;
+		default:
+			usage(progname);
+			return 1;
+		}
+	}
+
+	if (show_version) {
+		printf ("%s version " VERSION "\n", progname);
+	}
+
+	if (show_help) {
+		usage (progname);
+	}
+
+	if (show_version || show_help) {
+		return 0;
+	}
+
+	if (optind > argc) {
+		usage (progname);
+		return 1;
+	}
+
+        cfg = cfg_read (config_filename);
+
+	if (optind < argc) {
+		dictionary_insert (cfg->dictionary, "Listen", argv[optind]);
 	}
 
         log_open ();
