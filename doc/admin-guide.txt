@@ -115,7 +115,7 @@ sighttpd.conf:
 Listen 3000
 
 <Stdin>
-	Path "/stream.264"
+	Path "/mjpeg/"
 	Type "multipart/x-mixed-replace; boundary=++++++++"
 </Stdin>
 -----

@@ -3,8 +3,16 @@
 # Motion JPEG test
 #
 # After running this shell script, open http://localhost:3000/mjpeg/ with
-# Firefox.
+# Firefox. You will need the following in /etc/sighttpd/sighttpd.conf:
 #
+# -----
+# Listen 3000
+# 
+# <Stdin>
+# 	Path "/mjpeg/"
+# 	Type "multipart/x-mixed-replace; boundary=++++++++"
+# </Stdin>
+# -----
 
 if [ $# -lt 1 ]; then
 	echo "Usage: $0 jpeg_file [...]"
