@@ -2,7 +2,10 @@
 Sighttpd Administrator's Guide
 ==============================
 
-The configuration file is looked for in /etc/sighttpd/sighttpd.conf
+By default, the configuration file is looked for in /etc/sighttpd/sighttpd.conf
+You can override this with the -f commandline option to sighttpd:
+
+$ sighttpd -f /path/to/configfile
 
 
 1. Syntax
