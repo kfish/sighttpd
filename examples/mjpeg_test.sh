@@ -3,7 +3,9 @@
 # Motion JPEG test
 #
 # After running this shell script, open http://localhost:3000/mjpeg/ with
-# Firefox. You will need the following in /etc/sighttpd/sighttpd.conf:
+# Firefox. You will need the following in /etc/sighttpd/sighttpd.conf
+# (or use the sighttpd-stdin-mjpeg.conf file, which will be installed
+# in $prefix/share/sighttpd)
 #
 # -----
 # Listen 3000
