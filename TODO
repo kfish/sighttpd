@@ -9,6 +9,7 @@ Ogg capture streaming
 	* camera -> theora (oggz + libtheora)
 	* add vorbis support (fishsound)
 	* oggz-chop / Media Fragments
+	* rate-limited file serving (oggz)
 
 V4L2 control interface
 	Currently have a kongou interface, using kgctrl.
