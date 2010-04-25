@@ -4,6 +4,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+#include <ctype.h>
 
 #include "x_tree.h"
 #include "jhash.h"
@@ -30,10 +32,15 @@ static Variable *
 variable_new (const char * name, const char * value)
 {
   Variable * variable;
+  char * c;
 
   variable = (Variable *) malloc (sizeof (Variable));
   variable->name = x_strdup (name);
   variable->value = x_strdup (value);
+
+  /* Always use the lowercase version of a variable name as the key */
+  for (c=variable->name; *c; c++)
+	  *c = tolower(*c);
 
   return variable;
 }
@@ -54,7 +61,7 @@ static int
 variable_cmp (char * s1, Variable * v2)
 {
   if (!s1 || !v2) return -1;
-  return strcmp (s1, v2->name);
+  return strcasecmp (s1, v2->name);
 }
 
 Dictionary *
@@ -85,6 +92,26 @@ dictionary_delete (Dictionary * table)
   return 0;
 }
 
+static ub4
+dictionary_hash (const char * name)
+{
+  char * s, * c;
+  ub4 h;
+
+  s = x_strdup (name);
+
+  /* Always use the lowercase version of a variable name as the key */
+  for (c=s; *c; c++)
+	  *c = tolower(*c);
+
+  h = jenkins_hash ((ub1 *)s, strlen (s), 0);
+  h = (h & hashmask (BUCKETS_MASK));
+
+  free (s);
+
+  return h;
+}
+
 const char *
 dictionary_lookup (Dictionary * table, const char * name)
 {
@@ -92,8 +119,7 @@ dictionary_lookup (Dictionary * table, const char * name)
   x_node_t * node;
   ub4 h;
 
-  h = jenkins_hash ((ub1 *)name, strlen (name), 0);
-  h = (h & hashmask (BUCKETS_MASK));
+  h = dictionary_hash (name);
 
   node = x_tree_find (table->buckets[h], (void *)name);
   if (node == NULL) {
@@ -111,8 +137,7 @@ dictionary_insert (Dictionary * table, const char * name, const char * value)
   x_node_t * node;
   ub4 h;
 
-  h = jenkins_hash ((ub1 *)name, strlen (name), 0);
-  h = (h & hashmask (BUCKETS_MASK));
+  h = dictionary_hash (name);
 
   node = x_tree_find (table->buckets[h], (void *)name);
   if (node == NULL) {
