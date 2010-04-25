@@ -46,6 +46,24 @@ three examples:
 	2. H.264 video
 	3. Motion JPEG
 
+The <stdin> configuration block takes two parameters, Path and Type.
+
+Path specifies the local part of the URL path at which you would like the content
+to appear.  For example, when configuring the server http://example.com/, the
+configuration directive:
+
+	Path /my/video.ogv
+
+in a <stdin> block will make the content appear at http://example.com/my/video.ogv
+
+The Type parameter specifies the Internet media type of the stream, which will
+appear in the Content-Type HTTP response header. For example, the configuration:
+
+	Type video/ogg
+
+will instruct sighttpd to serve this stream with Content-Type: video/ogg.
+
+
 2.1. Streaming text updates
 
 This configuration prints a timestamp every second. The content appears at
