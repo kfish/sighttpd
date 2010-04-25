@@ -1,0 +1,75 @@
+Installing sighttpd on SH-Mobile
+================================
+
+Since release 1.0.0, sighttpd includes direct support for integrated
+capture, video encoding and streaming on Renesas SH-Mobile processors.
+
+
+Installation
+------------
+
+The following libraries are required on the target system:
+
+	1. libuiomux
+	https://oss.renesas.com/modules/document/?libuiomux
+
+	2. libshveu
+	https://oss.renesas.com/modules/document/?libshveu
+
+	3. libshcodecs
+	https://oss.renesas.com/modules/document/?libshcodecs
+
+These should be pre-installed in the Linux board support package for relevant
+processors.
+
+If these libraries (and their header files and pkg-config description files)
+are properly installed, then the ./configure script will find them and
+enable support for the SHRecord module.
+
+
+Server Configuration
+--------------------
+
+The sighttpd.conf configuration:
+
+-----
+Listen 3000
+
+<SHRecord>
+        Path "/video0/vga.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-vga-stream.ctl"
+</SHRecord>
+
+<SHRecord>
+        Path "/video0/cif.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-cif-stream.ctl"
+</SHRecord>
+-----
+
+will make two H.264 streams appear at:
+
+http://ecovec:3000/video0/vga.264
+http://ecovec:3000/video0/cif.264
+
+The same control files that are used for shcodecs-record can be used - the
+output filename is simply ignored.
+
+To disable the on-screen preview, set "Preview off" in one of the SHRecord
+stanzas, eg:
+
+-----
+Listen 3000
+
+<SHRecord>
+        Path "/video0/cif.264"
+        CtlFile "/usr/share/shcodecs-record/k264-v4l2-cif-stream.ctl"
+        Preview off
+</SHRecord>
+-----
+
+
+Contact
+-------
+
+If you encounter any difficulties, please contact your SH-Mobile vendor or
+the Linux-SH <linux-sh@vger.kernel.org> mailing list.
