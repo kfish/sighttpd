@@ -49,7 +49,7 @@ AC_SUBST(RT_LIBS)
 dnl
 dnl Check for libuiomux
 dnl
-PKG_CHECK_MODULES(UIOMUX, uiomux, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
+PKG_CHECK_MODULES(UIOMUX, uiomux >= 1.1.0, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
 if test "x$HAVE_UIOMUX" = "xyes" ; then
   AC_DEFINE(HAVE_UIOMUX, [], [Define if have libuiomux])
   AC_SUBST(UIOMUX_CFLAGS)
@@ -60,7 +60,7 @@ AM_CONDITIONAL(HAVE_UIOMUX, [test "x$HAVE_UIOMUX" = "xyes"])
 dnl
 dnl Check for libshveu
 dnl
-PKG_CHECK_MODULES(SHVEU, shveu >= 0.5.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
+PKG_CHECK_MODULES(SHVEU, shveu >= 1.2.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
 if test "x$HAVE_SHVEU" = "xyes" ; then
   AC_DEFINE(HAVE_SHVEU, [], [Define if have libshveu])
   AC_SUBST(SHVEU_CFLAGS)
@@ -71,7 +71,7 @@ AM_CONDITIONAL(HAVE_SHVEU, [test "x$HAVE_SHVEU" = "xyes"])
 dnl
 dnl Check for libshcodecs
 dnl
-PKG_CHECK_MODULES(SHCODECS, shcodecs >= 0.9.9, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
+PKG_CHECK_MODULES(SHCODECS, shcodecs >= 1.1.0, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
 if test "x$HAVE_SHCODECS" = "xyes" ; then
   AC_DEFINE(HAVE_SHCODECS, [], [Define if have libshcodecs])
   AC_SUBST(SHCODECS_CFLAGS)
