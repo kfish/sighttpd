@@ -14,11 +14,12 @@ $ sighttpd -f /path/to/configfile
 Comments are marked with a '#' character, and continue to the end of line.
 
 Configuration directives are single keywords followed by whitespace and a
-value (to the end of the line, or comment character).
+value (to the end of the line, or comment character). The directive name
+(ie. keyword) is case insensitive.
 
 Configuration is grouped in blocks; the names of directives are scoped within
 a configuration block. Any configuration directives outside of a block are
-global to the entire configuration.
+global to the entire configuration. Block names are case insensitive.
 
 For example, the configuration file:
 
