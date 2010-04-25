@@ -7,6 +7,8 @@ You can override this with the -f commandline option to sighttpd:
 
 $ sighttpd -f /path/to/configfile
 
+Various example config files are distributed in the examples/ directory of the
+sighttpd source distribution.
 
 1. Syntax
 ---------
