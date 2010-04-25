@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include "cfg-read.h"
 #include "cfg-parse.h"
@@ -39,12 +40,12 @@ cfg_read_block_end (const char * name, void * user_data)
 	  return COPA_STOP_ERR;
   }
 
-  if (!strncmp (name, "StaticText", 10)) {
+  if (!strncasecmp (name, "StaticText", 10)) {
 	  cfg->resources = list_join (cfg->resources, statictext_resources (cfg->block_dict));
-  } else if (!strncmp (name, "Stdin", 5)) {
+  } else if (!strncasecmp (name, "Stdin", 5)) {
           cfg->resources = list_join (cfg->resources, fdstream_resources (cfg->block_dict));
 #ifdef HAVE_SHCODECS
-  } else if (!strncmp (name, "SHRecord", 8)) {
+  } else if (!strncasecmp (name, "SHRecord", 8)) {
 	  cfg->resources = list_join (cfg->resources, shrecord_resources (cfg->block_dict));
 #endif
   }
