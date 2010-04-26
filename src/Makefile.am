@@ -47,6 +47,18 @@ http_tests = \
 http_date_test_SOURCES = http-date.c http-date_test.c
 http_reqline_test_SOURCES = http-reqline.c http-reqline_test.c
 
+# OggStdin
+if HAVE_OGGZ
+oggstdin_headers = \
+	ogg-stdin.h
+
+oggstdin_sources =\
+	ogg-stdin.c
+
+oggstdin_cflags = $(OGGZ_CFLAGS)
+oggstdin_libs = $(OGGZ_LIBS)
+endif
+
 # SHRecord
 if HAVE_SHCODECS
 if HAVE_SHVEU
@@ -78,6 +90,7 @@ endif
 noinst_HEADERS = \
 	$(ds_headers) \
 	$(http_headers) \
+	$(oggstdin_headers) \
 	$(shrecord_headers) \
 	sighttpd.h \
         log.h \
@@ -97,6 +110,7 @@ noinst_HEADERS = \
 sighttpd_SOURCES = \
 	$(ds_sources) \
 	$(http_sources) \
+	$(oggstdin_sources) \
 	$(shrecord_sources) \
 	sighttpd.c \
 	main.c \
@@ -113,8 +127,8 @@ sighttpd_SOURCES = \
         status.c \
         uiomux.c
 
-sighttpd_CFLAGS = $(shrecord_cflags)
-sighttpd_LDFLAGS = $(shrecord_libs) $(PTHREAD_LIBS) $(RT_LIBS)
+sighttpd_CFLAGS = $(oggstdin_cflags) $(shrecord_cflags)
+sighttpd_LDFLAGS = $(oggstdin_libs) $(shrecord_libs) $(PTHREAD_LIBS) $(RT_LIBS)
 
 # Unit tests
 test: check
