@@ -7,13 +7,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h> /* STDIN_FILENO */
+#include <pthread.h>
+#include <oggz/oggz.h>
 
 #include "http-reqline.h"
 #include "http-status.h"
 #include "params.h"
 #include "resource.h"
 #include "stream.h"
+
+/*#define DEBUG*/
 
 #define DEFAULT_CONTENT_TYPE "application/ogg"
 
@@ -22,8 +25,77 @@
 struct oggstdin {
 	const char * path;
 	const char * content_type;
-        struct stream * stream;
+
+	pthread_t main_thread;
+
+	int active;
+        struct ringbuffer rb;
+
+	unsigned char * headers;
+	size_t headers_len; /* pointer to current writeable position in headers */
+	int nr_headers_got;
+
+	OGGZ * oggz;
 };
+
+static struct oggstdin oggstdin_pvt;
+
+static int
+oggstdin_read_page (OGGZ * oggz, const ogg_page * og, long serialno, void * data)
+{
+	struct oggstdin * st = (struct oggstdin *)data;
+
+	if (ogg_page_bos(og)) {
+		st->headers_len = 0;
+		st->nr_headers_got = 0;
+	}
+
+	if (st->nr_headers_got < 3) {
+		st->nr_headers_got += ogg_page_packets (og);
+		memcpy (st->headers + st->headers_len, og->header, og->header_len);
+		st->headers_len += og->header_len;
+		memcpy (st->headers + st->headers_len, og->body, og->body_len);
+		st->headers_len += og->body_len;
+	} else {
+		ringbuffer_write (&st->rb, og->header, og->header_len);
+		ringbuffer_write (&st->rb, og->body, og->body_len);
+	}
+
+	return (st->active ? OGGZ_CONTINUE : OGGZ_STOP_OK);
+}
+
+static void *
+oggstdin_main (void * data)
+{
+	struct oggstdin * st = (struct oggstdin *)data;
+
+	st->oggz = oggz_open_stdio (stdin, OGGZ_READ);
+	
+	oggz_set_read_page (st->oggz, -1, oggstdin_read_page, st);
+
+	oggz_run (st->oggz);
+
+	oggz_close (st->oggz);
+
+	return NULL;
+}
+
+int oggstdin_run (void)
+{
+	struct oggstdin *st = &oggstdin_pvt;
+
+	return pthread_create (&st->main_thread, NULL, oggstdin_main, st);
+}
+
+void
+oggstdin_sighandler (void)
+{
+	struct oggstdin *st = &oggstdin_pvt;
+
+	st->active = 0;
+
+	pthread_join (st->main_thread, NULL);
+}
 
 static int
 oggstdin_check (http_request * request, void * data)
@@ -49,20 +121,29 @@ static void
 oggstdin_body (int fd, http_request * request, params_t * request_headers, void * data)
 {
 	struct oggstdin * st = (struct oggstdin *)data;
-	struct stream * stream = st->stream;
         size_t n, avail;
         int rd;
 
-        rd = ringbuffer_open (&stream->rb);
+	while (st->nr_headers_got < 3) {
+		usleep (10000);
+	}
 
-        while (stream->active) {
-                while ((avail = ringbuffer_avail (&stream->rb, rd)) == 0)
+	if ((n = write(fd, st->headers, st->headers_len)) == -1) {
+		perror ("OggStdin body write");
+		return;
+	}
+	fsync (fd);
+
+        rd = ringbuffer_open (&st->rb);
+
+        while (st->active) {
+                while ((avail = ringbuffer_avail (&st->rb, rd)) == 0)
                         usleep (10000);
 
 #ifdef DEBUG
                 if (avail != 0) printf ("stream_reader: %ld bytes available\n", avail);
 #endif
-                n = ringbuffer_writefd (fd, &stream->rb, rd);
+                n = ringbuffer_writefd (fd, &st->rb, rd);
                 if (n == -1) {
                         break;
                 }
@@ -73,7 +154,7 @@ oggstdin_body (int fd, http_request * request, params_t * request_headers, void 
 #endif
         }
 
-        ringbuffer_close (&stream->rb, rd);
+        ringbuffer_close (&st->rb, rd);
 }
 
 static void
@@ -81,38 +162,52 @@ oggstdin_delete (void * data)
 {
 	struct oggstdin * st = (struct oggstdin *)data;
 
-	stream_close (st->stream);
-
 	free (st->path);
 	free (st->content_type);
+        free (st->rb.data);
 
-	free (st);
+	oggz_close (st->oggz);
 }
 
 struct resource *
-oggstdin_resource (const char * path, int fd, const char * content_type)
+oggstdin_resource (const char * path, const char * content_type)
 {
-	struct oggstdin * st;
+	struct oggstdin * st = &oggstdin_pvt;
+        unsigned char * data, * headers;
+        size_t len = 4096*16*32;
+	size_t header_len = 10 * 1024;
 
-	if ((st = calloc (1, sizeof(*st))) == NULL)
+        if ((data = malloc (len)) == NULL) {
+                return NULL;
+        }
+
+	if ((headers = malloc (header_len)) == NULL) {
+		free (data);
 		return NULL;
+	}
 
 	st->path = x_strdup (path);
+	if (st->path == NULL) {
+		free (data);
+		free (headers);
+		return NULL;
+	}
 	st->content_type = x_strdup (content_type);
-	st->stream = stream_open (fd);
+	if (st->content_type == NULL) {
+		free (data);
+		free (headers);
+		free (st->path);
+		return NULL;
+	}
+
+	ringbuffer_init (&st->rb, data, len);
+	st->active = 1;
+
+	st->headers = headers;
+	st->headers_len = 0;
+	st->nr_headers_got = 0;
 
 	return resource_new (oggstdin_check, oggstdin_head, oggstdin_body, oggstdin_delete, st);
-}
-
-struct resource *
-oggstdin_resource_open (const char * urlpath, const char * filepath, const char * content_type)
-{
-        int fd;
-
-        if ((fd = open (filepath, O_RDONLY)) == -1)
-		return NULL;
-
-	return oggstdin_resource (urlpath, fd, content_type);
 }
 
 list_t *
@@ -130,7 +225,7 @@ oggstdin_resources (Dictionary * config)
 	if (!ctype) ctype = DEFAULT_CONTENT_TYPE;
 
 	if (path)
-		l = list_append (l, oggstdin_resource (path, STDIN_FILENO, ctype));
+		l = list_append (l, oggstdin_resource (path, ctype));
 
 	return l;
 }

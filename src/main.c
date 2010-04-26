@@ -20,6 +20,10 @@
 #include "sighttpd.h"
 #include "cfg-read.h"
 
+#ifdef HAVE_OGGZ
+#include "ogg-stdin.h"
+#endif
+
 #ifdef HAVE_SHCODECS
 #include "shrecord.h"
 #endif
@@ -56,6 +60,10 @@ usage (const char * progname)
 
 void sig_handler(int sig)
 {
+#ifdef HAVE_OGGZ
+	oggstdin_sighandler ();
+#endif
+
 #ifdef HAVE_SHCODECS
         shrecord_sighandler ();
 #endif
@@ -146,6 +154,10 @@ int main(int argc, char *argv[])
         sighttpd = sighttpd_init (cfg);
 
 	free (cfg);
+
+#ifdef HAVE_OGGZ
+	oggstdin_run();
+#endif
 
 #ifdef HAVE_SHCODECS
 	shrecord_run();
