@@ -1,0 +1,262 @@
+.TH "sighttpd.conf" "5" "26 Apr 2010" "" ""
+.SH "NAME"
+sighttpd.conf \(em configuration file for sighttpd
+.SH "SYNOPSIS"
+
+.PP
+sighttpd.conf
+.PP
+.SH "DESCRIPTION"
+
+.PP
+The sighttpd.conf file is the runtime configuration file for sighttpd.
+By default, the configuration file is looked for in /etc/sighttpd/sighttpd.conf
+You can override this with the -f commandline option to sighttpd:
+.PP
+.nf
+	$ sighttpd -f /path/to/configfile
+.fi
+.PP
+Various example config files are distributed in the examples/ directory of the
+sighttpd source distribution.
+
+.PP
+.SH "FILE FORMAT"
+.PP
+Comments are marked with a '#' character, and continue to the end of line.
+.PP
+Configuration directives are single keywords followed by whitespace and a
+value (to the end of the line, or comment character). The directive name
+(ie. keyword) is case insensitive.
+.PP
+Configuration is grouped in blocks; the names of directives are scoped within
+a configuration block. Any configuration directives outside of a block are
+global to the entire configuration. Block names are case insensitive.
+.PP
+For example, the configuration file:
+.PP
+.nf
+	Listen 3000
+
+	<StaticText>
+		Path "/welcome.txt"
+		Text "Hello, world!"
+	</StaticText>
+.fi
+.PP
+specifies one global directive ("Listen 3000"), and one block ("StaticText").
+Within that block, the directives "Path" and "Text" appear.
+
+.PP
+.SH "GLOBAL PARAMETERS"
+
+.PP
+Parameters outside of a <block> are global.
+.PP
+.IP "\fBListen\fP"
+This parameter specifies the TCP port to listen on. This may be specified as a
+service name listed in \fB/etc/services\fP.
+
+.PP
+.SH "MODULE PARAMETERS"
+.PP
+
+.PP
+.SH "StaticText"
+
+.PP
+The StaticText module allows you to specify that a text string should appear
+at a given URL. This is useful for identifying server instances at your installation.
+.PP
+.IP "\fBPath\fP"
+This parameter specifies the local part of the URL path.
+.IP "\fBText\fP"
+This parameter specifies the verbatim text that should appear at the URL path. This
+text is served with Content-Type text/plain.
+
+.PP
+.SH "Stdin"
+
+The Stdin module allows streaming of data from stdin.
+.PP
+.IP "\fBPath\fP"
+Path specifies the local part of the URL path at which you would like the content
+to appear.  For example, when configuring the server http://example.com/, the
+configuration directive:
+
+	Path /my/video.ogv
+
+in a <stdin> block will make the content appear at http://example.com/my/video.ogv
+.IP "\fBType\fP"
+The Type parameter specifies the Internet media type of the stream, which will
+appear in the Content-Type HTTP response header. For example, the configuration:
+
+	Type video/ogg
+
+will instruct sighttpd to serve this stream with Content-Type: video/ogg.
+
+.PP
+.SH "SHRecord"
+
+.PP
+sighttpd includes direct support for integrated capture, video encoding and streaming
+on Renesas SH-Mobile processors. This module supports the following configuration
+directives:
+.PP
+.IP "\fBPath\fP"
+Path specifies the local part of the URL path at which you would like the content
+to appear.  For example, when configuring the server http://example.com/, the
+configuration directive:
+
+	Path /my/video.264
+
+in an <SHRecord> block will make the content appear at http://example.com/my/video.264
+.IP "\fBCtlFile\fP"
+This parameter specifies the control file with encoding parameters. The same control
+files that are used for shcodecs-record can be used - the output filename is simply
+ignored.
+.IP "\fBPreview\fP"
+This parameter specifies if a preview of the captured video should be displayed on the
+framebuffer. Valid values are on and off; the default value is on.
+
+.PP
+.SH "EXAMPLES"
+
+.PP
+.IP "\fBStreaming text\fP"
+This configuration prints a timestamp every second. The content appears at
+the path /date.txt (eg. http://localhost:3000/date.txt):
+
+.nf
+	Listen 3000
+
+	<Stdin>
+		Path "/date.txt"
+		Type "text/plain"
+	</Stdin>
+.fi
+
+Then, run:
+
+    $ while `true`; do date; sleep 1; done | sighttpd
+
+Then connect from another terminal:
+
+    $ curl -i http://localhost:3000/date.txt
+    HTTP/1.1 200 OK
+    Date: Wed, 07 Apr 2010 04:23:09 GMT
+    Server: Sighttpd/0.9.0
+    Content-Type: text/plain
+
+    Wed Apr  7 13:23:09 JST 2010
+    Wed Apr  7 13:23:10 JST 2010
+    Wed Apr  7 13:23:11 JST 2010
+    ...
+
+.PP
+.IP "\fBStreaming H.264 video\fP"
+
+.nf
+	Listen 3000
+
+	<Stdin>
+		Path "/stream.264"
+		Type "video/mp4"
+	</Stdin>
+.fi
+
+Then run your streaming video input, eg:
+
+	$ shcodecs-record k264-v4l2-stream.ctl | sighttpd
+
+and connect with a video player:
+
+	$ mplayer http://localhost:3000/stream.264 -fps 30
+
+.IP "\fBStreaming Motion MJPEG\fP"
+
+.nf
+	Listen 3000
+
+	<Stdin>
+		Path "/mjpeg/"
+		Type "multipart/x-mixed-replace; boundary=++++++++"
+	</Stdin>
+.fi
+
+This configuration expects that a series of jpeg comes in from stdin. At
+each boundary the following headers must be inserted:
+
+   --++++++++
+   Content-Type: image/jpeg
+   Content-length: <size of jpeg file>
+
+examples/mjpeg_test.sh is provided for testing purpose. Execute the following:
+
+    $ examples/mjpeg_test.sh file1 file2 file3 ...
+
+Then open 'http://localhost:3000/mjpeg/' with a web browser that supports Motion JPEG,
+such as \fBfirefox\fP(1).
+
+
+.IP "\fBStreaming video with SHRecord\fP"
+
+.nf
+	Listen 3000
+
+	<SHRecord>
+		Path "/video0/vga.264"
+		CtlFile "/usr/share/shcodecs-record/k264-v4l2-vga-stream.ctl"
+	</SHRecord>
+
+	<SHRecord>
+		Path "/video0/cif.264"
+		CtlFile "/usr/share/shcodecs-record/k264-v4l2-cif-stream.ctl"
+	</SHRecord>
+.fi
+
+will make two H.264 streams appear at:
+
+	http://ecovec:3000/video0/vga.264
+	http://ecovec:3000/video0/cif.264
+
+
+
+.PP
+.SH "FILES"
+
+.PP
+/etc/sighttpd/sighttpd.conf or sighttpd.conf
+.PP
+.SH "SEE ALSO"
+
+.PP
+\fBsighttpd\fP(1)
+.PP
+.SH "DIAGNOSTICS"
+
+.PP
+.SH "BUGS"
+
+.PP
+Please report bugs to the author, conrad@metadecks.org
+.PP
+.SH "VERSION"
+
+.PP
+This man page is current for version 1.0.0 of sighttpd.
+.PP
+.SH "CREDITS"
+.PP
+sighttpd is distributed under the GNU General Public License.  See the file
+COPYING for details.
+.PP
+A web site is available at
+http://www.kfish.org/software/sighttpd/
+.PP
+We would be delighted to hear from you if you like this program.
+.PP
+.SH "AUTHOR"
+
+.PP
+sighttpd was written by Conrad Parker.

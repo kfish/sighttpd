@@ -21,7 +21,11 @@ To build:
 Configuration
 -------------
 
-See the doc/admin-guide.txt for details.
+See the sighttpd.conf(5) man page for the configuration syntax and available
+options. See the doc/admin-guide.txt for a discussion and examples.
+
+Various example configuration files are distributed in the examples/ directory
+of the sighttpd source distribution.
 
 Developers
 ----------

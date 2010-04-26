@@ -1,7 +1,7 @@
 .TH "SIGHTTPD" 8 "May 2009" "SIG HTTP Server" "Annodex"
 
 .SH NAME
-sighttpd \- A stream ingress Hypertext Transfer Protocol Server
+sighttpd \- an HTTP server designed to work with realtime stream input.
 
 .SH SYNOPSIS
 
@@ -10,7 +10,7 @@ sighttpd \- A stream ingress Hypertext Transfer Protocol Server
 .PP
 .SH DESCRIPTION
 .B sighttpd
-is a stream ingress HTTP server.
+is a streaming HTTP server.
 
 .SH OPTIONS
 .PP
@@ -19,21 +19,39 @@ is a stream ingress HTTP server.
 .SS "Configuration file"
 .IP "\-f \fBfilename\fR, \-\-config \fBfilename\fR" 10
 Specify configuration filename [/etc/sighttpd/sighttpd.conf]
+The syntax of this configuration file is specified in \fBsighttpd.conf\fP(5).
 
 .PP
-.SH CONFIGURATION
-
-By default, sighttpd looks for the configuration file /etc/sighttpd/sighttpd.conf.
-The following values are known:
+.SH "SEE ALSO"
 
 .PP
-.IP "\fBListen\fP"
-The port number to listen on. This may be specified as a service name listed in
-\fB/etc/services\fP.
+\fBsighttpd.conf\fP(5)
 
 .PP
-.SH AUTHORS
+.SH "DIAGNOSTICS"
 
-sighttpd was written by Conrad Parker
+.PP
+.SH "BUGS"
 
-Please report bugs to <conrad@metadecks.org>
+.PP
+Please report bugs to the author, conrad@metadecks.org
+.PP
+.SH "VERSION"
+
+.PP
+This man page is current for version 1.0.0 of sighttpd.
+.PP
+.SH "CREDITS"
+.PP
+sighttpd is distributed under the GNU General Public License.  See the file
+COPYING for details.
+.PP
+A web site is available at
+http://www.kfish.org/software/sighttpd/
+.PP
+We would be delighted to hear from you if you like this program.
+.PP
+.SH "AUTHOR"
+
+.PP
+sighttpd was written by Conrad Parker.
