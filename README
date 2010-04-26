@@ -1,9 +1,9 @@
-sighttpd - A stream ingress HTTP server
-=======================================
+sighttpd - An HTTP streaming server
+===================================
 
-sighttpd is an HTTP server designed to work with realtime stream input.
-It is particularly useful for making streams from a camera available to multiple
-clients.
+Sighttpd is an HTTP streaming server designed for distributing realtime
+input. It is particularly useful for making camera streams available to
+multiple clients, and has been designed for embedded systems use.
 
 Installation
 ------------
@@ -26,6 +26,13 @@ options. See the doc/admin-guide.txt for a discussion and examples.
 
 Various example configuration files are distributed in the examples/ directory
 of the sighttpd source distribution.
+
+Homepage
+--------
+
+Updates are available at the sighttpd homepage:
+
+        http://www.kfish.org/software/sighttpd
 
 Developers
 ----------
