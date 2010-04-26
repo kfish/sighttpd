@@ -606,7 +606,18 @@ shrecord_resource (char * path, char * ctlfile)
         }
 
 	ed->path = x_strdup (path);
+	if (ed->path == NULL) {
+		free (ed);
+		free (data);
+		return NULL;
+	}
 	ed->ctlfile = x_strdup (ctlfile);
+	if (ed->ctlfile == NULL) {
+		free (ed);
+		free (data);
+		free (ed->path);
+		return NULL;
+	}
 
 	return_code = ctrlfile_get_params(ed->ctlfile,
 			&ed->ainfo, &ed->stream_type);
@@ -646,14 +657,17 @@ shrecord_resources (Dictionary * config)
 	const char * path;
 	const char * ctlfile;
 	const char * preview;
+	struct resource * r;
 
 	l = list_new();
 
 	path = dictionary_lookup (config, "Path");
 	ctlfile = dictionary_lookup (config, "CtlFile");
 
-	if (path && ctlfile)
-		l = list_append (l, shrecord_resource (path, ctlfile));
+	if (path && ctlfile) {
+		if ((r = shrecord_resource (path, ctlfile)) != NULL)
+			l = list_append (l, r);
+	}
 
 	if ((preview = dictionary_lookup (config, "Preview")) != NULL) {
 		if (!strncasecmp (preview, "on", 2))

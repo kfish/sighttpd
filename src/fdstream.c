@@ -42,7 +42,7 @@ fdstream_head (http_request * request, params_t * request_headers, const char **
 
         *status_line = http_status_line (HTTP_STATUS_OK);
 
-        r = params_append (r, "Content-Type", st->content_type);
+        r = params_append (r, "Content-Type", (char *)st->content_type);
 }
 
 static void
@@ -83,8 +83,8 @@ fdstream_delete (void * data)
 
 	stream_close (st->stream);
 
-	free (st->path);
-	free (st->content_type);
+	free ((char *)st->path);
+	free ((char *)st->content_type);
 
 	free (st);
 }
@@ -98,8 +98,25 @@ fdstream_resource (const char * path, int fd, const char * content_type)
 		return NULL;
 
 	st->path = x_strdup (path);
+	if (st->path == NULL) {
+		free (st);
+		return NULL;
+	}
+
 	st->content_type = x_strdup (content_type);
+	if (st->content_type == NULL) {
+		free (st);
+		free ((char *)st->path);
+		return NULL;
+	}
+
 	st->stream = stream_open (fd);
+	if (st->stream == NULL) {
+		free (st);
+		free ((char *)st->path);
+		free ((char *)st->content_type);
+		return NULL;
+	}
 
 	return resource_new (fdstream_check, fdstream_head, fdstream_body, fdstream_delete, st);
 }
@@ -121,6 +138,7 @@ fdstream_resources (Dictionary * config)
 	list_t * l;
 	const char * path;
 	const char * ctype;
+	struct resource * r;
 
 	l = list_new();
 
@@ -129,8 +147,10 @@ fdstream_resources (Dictionary * config)
 
 	if (!ctype) ctype = DEFAULT_CONTENT_TYPE;
 
-	if (path)
-		l = list_append (l, fdstream_resource (path, STDIN_FILENO, ctype));
+	if (path) {
+		if ((r = fdstream_resource (path, STDIN_FILENO, ctype)) != NULL)
+			l = list_append (l, r);
+	}
 
 	/* fdstream_resource_open ("/stream2", "/tmp/stream2.264", "video/mp4"); */
 
