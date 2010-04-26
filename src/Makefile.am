@@ -55,6 +55,7 @@ shrecord_headers = \
 	shrecord.h \
 	avcbencsmp.h \
 	capture.h \
+	display.h \
 	framerate.h \
 	thrqueue.h \
 	ControlFileUtil.h
