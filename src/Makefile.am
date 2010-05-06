@@ -104,6 +104,7 @@ noinst_HEADERS = \
 	kongou.h \
 	statictext.h \
         status.h \
+	tempfd.h \
         uiomux.h \
         tests.h
 
@@ -125,6 +126,7 @@ sighttpd_SOURCES = \
 	kongou.c \
 	statictext.c \
         status.c \
+	tempfd.c \
         uiomux.c
 
 sighttpd_CFLAGS = $(oggstdin_cflags) $(shrecord_cflags)

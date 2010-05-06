@@ -16,6 +16,7 @@
 #include "params.h"
 #include "resource.h"
 #include "stream.h"
+#include "tempfd.h"
 
 /*#define DEBUG*/
 
@@ -187,8 +188,8 @@ oggstdin_resource (const char * path, const char * content_type)
                 return NULL;
         }
 
-	if ((st->headers_fd = open ("/tmp/oggheaders", O_RDWR|O_CREAT, 0600)) == -1) {
-		perror ("open");
+	if ((st->headers_fd = create_tempfd ("sighttpd-XXXXXXXXXX")) == -1) {
+		perror ("create_tempfd");
 		return NULL;
 	}
 
