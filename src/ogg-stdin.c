@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <oggz/oggz.h>
@@ -31,7 +32,7 @@ struct oggstdin {
 	int active;
         struct ringbuffer rb;
 
-	unsigned char * headers;
+	int headers_fd;
 	size_t headers_len; /* pointer to current writeable position in headers */
 	int nr_headers_got;
 
@@ -48,14 +49,16 @@ oggstdin_read_page (OGGZ * oggz, const ogg_page * og, long serialno, void * data
 	if (ogg_page_bos(og)) {
 		st->headers_len = 0;
 		st->nr_headers_got = 0;
+		lseek (st->headers_fd, 0, SEEK_SET);
 	}
 
 	if (st->nr_headers_got < 3) {
 		st->nr_headers_got += ogg_page_packets (og);
-		memcpy (st->headers + st->headers_len, og->header, og->header_len);
+		write (st->headers_fd, og->header, og->header_len);
 		st->headers_len += og->header_len;
-		memcpy (st->headers + st->headers_len, og->body, og->body_len);
+		write (st->headers_fd, og->body, og->body_len);
 		st->headers_len += og->body_len;
+		fsync (st->headers_fd);
 	} else {
 		ringbuffer_write (&st->rb, og->header, og->header_len);
 		ringbuffer_write (&st->rb, og->body, og->body_len);
@@ -122,13 +125,14 @@ oggstdin_body (int fd, http_request * request, params_t * request_headers, void 
 {
 	struct oggstdin * st = (struct oggstdin *)data;
         size_t n, avail;
+	off_t offset=0;
         int rd;
 
 	while (st->nr_headers_got < 3) {
 		usleep (10000);
 	}
 
-	if ((n = write(fd, st->headers, st->headers_len)) == -1) {
+	if ((n = sendfile (fd, st->headers_fd, &offset, st->headers_len)) == -1) {
 		perror ("OggStdin body write");
 		return;
 	}
@@ -166,6 +170,8 @@ oggstdin_delete (void * data)
 	free (st->content_type);
         free (st->rb.data);
 
+	close (st->headers_fd);
+
 	oggz_close (st->oggz);
 }
 
@@ -181,21 +187,19 @@ oggstdin_resource (const char * path, const char * content_type)
                 return NULL;
         }
 
-	if ((headers = malloc (header_len)) == NULL) {
-		free (data);
+	if ((st->headers_fd = open ("/tmp/oggheaders", O_RDWR|O_CREAT, 0600)) == -1) {
+		perror ("open");
 		return NULL;
 	}
 
 	st->path = x_strdup (path);
 	if (st->path == NULL) {
 		free (data);
-		free (headers);
 		return NULL;
 	}
 	st->content_type = x_strdup (content_type);
 	if (st->content_type == NULL) {
 		free (data);
-		free (headers);
 		free (st->path);
 		return NULL;
 	}
@@ -203,7 +207,6 @@ oggstdin_resource (const char * path, const char * content_type)
 	ringbuffer_init (&st->rb, data, len);
 	st->active = 1;
 
-	st->headers = headers;
 	st->headers_len = 0;
 	st->nr_headers_got = 0;
 
