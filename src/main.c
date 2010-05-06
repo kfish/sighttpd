@@ -136,6 +136,10 @@ int main(int argc, char *argv[])
 	}
 
         cfg = cfg_read (config_filename);
+	if(!cfg){
+		printf("Config file error.\n");
+		return 1;
+	}
 
 	if (optind < argc) {
 		dictionary_insert (cfg->dictionary, "Listen", argv[optind]);
