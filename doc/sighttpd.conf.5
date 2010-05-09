@@ -84,16 +84,42 @@ Path specifies the local part of the URL path at which you would like the conten
 to appear.  For example, when configuring the server http://example.com/, the
 configuration directive:
 
-	Path /my/video.ogv
+	Path /my/video.m4v
 
 in a <stdin> block will make the content appear at http://example.com/my/video.ogv
 .IP "\fBType\fP"
 The Type parameter specifies the Internet media type of the stream, which will
 appear in the Content-Type HTTP response header. For example, the configuration:
 
-	Type video/ogg
+	Type video/mpeg4
 
-will instruct sighttpd to serve this stream with Content-Type: video/ogg.
+will instruct sighttpd to serve this stream with Content-Type: video/mpeg4.
+
+.PP
+.SH "OggStdin"
+
+Raw Ogg data cannot be streamed from standard input using <Stdin>, as an Ogg
+stream needs to have setup headers prepended for each codec stream. For this
+purpose a special module called <OggStdin> is provided, which buffers these
+headers and serves them first to each client that connects before continuing
+with live Ogg pages.
+
+.PP
+.IP "\fBPath\fP"
+Path specifies the local part of the URL path at which you would like the content
+to appear.  For example, when configuring the server http://example.com/, the
+configuration directive:
+
+	Path /my/stream.ogg
+
+in a <oggstdin> block will make the content appear at http://example.com/my/stream.ogg
+.IP "\fBType\fP"
+The Type parameter specifies the Internet media type of the stream, which will
+appear in the Content-Type HTTP response header. For example, the configuration:
+
+	Type audio/ogg
+
+will instruct sighttpd to serve this stream with Content-Type: audio/ogg.
 
 .PP
 .SH "SHRecord"
@@ -198,6 +224,18 @@ examples/mjpeg_test.sh is provided for testing purpose. Execute the following:
 Then open 'http://localhost:3000/mjpeg/' with a web browser that supports Motion JPEG,
 such as \fBfirefox\fP(1).
 
+.IP "\fBStreaming Ogg from standard input\fP"
+
+.nf
+	Listen 3000
+
+	# Streaming Ogg Vorbis from stdin, using the special
+	# OggStdin module that caches Ogg Vorbis headers
+	<OggStdin>
+		Path "/stream.ogg"
+		Type "audio/ogg"
+	</OggStdin>
+.fi
 
 .IP "\fBStreaming video with SHRecord\fP"
 
