@@ -155,7 +155,38 @@ examples/mjpeg_test.sh is provided for testing purpose. Execute the following:
 Then open 'http://localhost:3000/mjpeg/' with Firefox.
 
 
-3. Streaming video with SHRecord
+3. Streaming Ogg from standard input
+------------------------------------
+
+Raw Ogg data cannot be streamed from standard input using <Stdin>, as an Ogg
+stream needs to have setup headers prepended for each codec stream. For this
+purpose a special module called <OggStdin> is provided, which buffers these
+headers and serves them first to each client that connects before continuing
+with live Ogg pages.
+
+The sighttpd.conf setup is similar to the normal <Stdin> configuration:
+
+-----
+Listen 3000
+
+# Streaming Ogg Vorbis from stdin, using the special
+# OggStdin module that caches Ogg Vorbis headers
+<OggStdin>
+	Path "/stream.ogg"
+	Type "audio/ogg"
+</OggStdin>
+-----
+
+You can run this with a shell pipeline like:
+
+    $ arecord -c 2 -r 44100 -f S16_LE -t wav | oggenc -o - - | sighttpd -f examples/sighttpd-oggstdin.conf
+
+And you can connect to it as an Ogg stream, eg:
+
+    $ ogg123 http://localhost:3000/stream.ogg
+
+
+4. Streaming video with SHRecord
 --------------------------------
 
 sighttpd includes direct support for capture and encoding on SH-Mobile, using

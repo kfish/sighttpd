@@ -44,6 +44,10 @@ cfg_read_block_end (const char * name, void * user_data)
 	  cfg->resources = list_join (cfg->resources, statictext_resources (cfg->block_dict));
   } else if (!strncasecmp (name, "Stdin", 5)) {
           cfg->resources = list_join (cfg->resources, fdstream_resources (cfg->block_dict));
+#ifdef HAVE_OGGZ
+  } else if (!strncasecmp (name, "OggStdin", 8)) {
+          cfg->resources = list_join (cfg->resources, oggstdin_resources (cfg->block_dict));
+#endif
 #ifdef HAVE_SHCODECS
   } else if (!strncasecmp (name, "SHRecord", 8)) {
 	  cfg->resources = list_join (cfg->resources, shrecord_resources (cfg->block_dict));

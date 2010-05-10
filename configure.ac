@@ -47,6 +47,41 @@ AC_CHECK_LIB(rt, clock_gettime, RT_LIBS="-lrt")
 AC_SUBST(RT_LIBS)
 
 dnl
+dnl  Detect oggz
+dnl
+
+if test "x$HAVE_PKGCONFIG" = "xyes" ; then
+  PKG_CHECK_MODULES(OGGZ, oggz >= 0.5.40,
+                    HAVE_OGGZ="yes", HAVE_OGGZ="no")
+fi
+
+if test "$HAVE_OGGZ" = "yes" ; then
+  AC_DEFINE(HAVE_OGGZ, [], [Define if have liboggz])
+  AC_SUBST(OGGZ_LIBS)
+else
+  AC_CHECK_LIB(oggz, oggz_open, OGGZ_LIBS="maybe")
+  if test "$OGGZ_LIBS" = "maybe" ; then
+    AC_MSG_ERROR([
+***
+*** liboggz-0.5.20 or greater seems to exist on your system, however
+*** the pkg-config tool cannot find its build information.
+***
+*** Please set your PKG_CONFIG_PATH environment variable to include the
+*** directory in which oggz.pc was installed. For example, oggz.pc
+*** is installed in /usr/local/lib/pkgconfig by default; if that is the
+*** case do:
+***
+***     export PKG_CONFIG_PATH="\$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
+***
+*** then run this ./configure again. If you configured liboggz with a
+*** different --prefix option, replace /usr/local above with that prefix.
+***
+])
+  fi
+fi
+AM_CONDITIONAL(HAVE_OGGZ, [test "x$HAVE_OGGZ" = "xyes"])
+
+dnl
 dnl Check for libuiomux
 dnl
 PKG_CHECK_MODULES(UIOMUX, uiomux >= 1.1.0, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
@@ -110,6 +145,7 @@ AC_MSG_RESULT([
 
   Module configuration:
 
+    Ogg Vorbis support: .......... $HAVE_OGGZ
     UIOMux support: .............. $HAVE_UIOMUX
     SHVEU support: ............... $HAVE_SHVEU
     SHCodecs support: ............ $HAVE_SHCODECS
