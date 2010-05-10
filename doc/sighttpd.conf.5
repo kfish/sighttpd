@@ -237,6 +237,14 @@ such as \fBfirefox\fP(1).
 	</OggStdin>
 .fi
 
+You can run this with a shell pipeline like:
+
+    $ arecord -c 2 -r 44100 -f S16_LE -t wav | oggenc -o - - | sighttpd -f examples/sighttpd-oggstdin.conf
+
+And you can connect to it as an Ogg stream, eg:
+
+    $ ogg123 http://localhost:3000/stream.ogg
+
 .IP "\fBStreaming video with SHRecord\fP"
 
 .nf
