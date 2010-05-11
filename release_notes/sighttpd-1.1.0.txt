@@ -1,0 +1,85 @@
+sighttpd 1.1.0
+==============
+
+Sighttpd is an HTTP streaming server designed for distributing realtime
+input. It is particularly useful for making camera streams available to
+multiple clients, and has been designed for embedded systems use.
+
+This release is available as a source tarball from:
+
+        http://www.kfish.org/software/sighttpd/
+
+New in this release
+===================
+
+This release adds a module for streaming Ogg Vorbis from standard input.
+
+Raw Ogg data cannot be streamed from standard input using <Stdin>, as an Ogg
+stream needs to have setup headers prepended for each codec stream. For this
+purpose a special module called <OggStdin> is provided, which buffers these
+headers and serves them first to each client that connects before continuing
+with live Ogg pages.
+
+The sighttpd.conf setup is similar to the normal <Stdin> configuration:
+
+-----
+Listen 3000
+
+# Streaming Ogg Vorbis from stdin, using the special
+# OggStdin module that caches Ogg Vorbis headers
+<OggStdin>
+	Path "/stream.ogg"
+	Type "audio/ogg"
+</OggStdin>
+-----
+
+You can run this with a shell pipeline like:
+
+    $ arecord -c 2 -r 44100 -f S16_LE -t wav | oggenc -o - - | sighttpd -f examples/sighttpd-oggstdin.conf
+
+And you can connect to it as an Ogg stream, eg:
+
+    $ ogg123 http://localhost:3000/stream.ogg
+
+
+Details
+=======
+
+The following changes have been made since release 1.0.0:
+
+Conrad Parker (11):
+      add configure check for liboggz
+      add ogg-stdin.[ch], based on fdstream.[ch]
+      fdstream,shrecord: handle oom, fix compile warnings
+      add sighttpd-oggstdin.conf example
+      oggstdin: cache headers, write rest to ringbuffer
+      Write Ogg headers to a temp file and use sendfile
+      add tempfd.[ch], use for ogg stdin headers
+      Add documentation for <OggStdin> module
+      add Ogg Vorbis eg to admin-guide, sighttpd.conf(5)
+      Merge branch 'oggvorbis'
+      Release 1.1.0
+
+Eric Garver (1):
+      Fix segfault on config fail
+
+ configure.ac                    |   38 ++++++-
+ doc/admin-guide.txt             |   33 ++++++-
+ doc/sighttpd.conf.5             |   52 ++++++++-
+ examples/Makefile.am            |    2 +
+ examples/sighttpd-oggstdin.conf |   16 +++
+ src/Makefile.am                 |   20 +++-
+ src/cfg-read.c                  |    4 +
+ src/fdstream.c                  |   30 ++++-
+ src/main.c                      |   16 +++
+ src/ogg-stdin.c                 |  236 +++++++++++++++++++++++++++++++++++++++
+ src/ogg-stdin.h                 |   12 ++
+ src/shrecord.c                  |   18 +++-
+ src/tempfd.c                    |   75 ++++++++++++
+ src/tempfd.h                    |    6 +
+ 14 files changed, 544 insertions(+), 14 deletions(-)
+ create mode 100644 examples/sighttpd-oggstdin.conf
+ create mode 100644 src/ogg-stdin.c
+ create mode 100644 src/ogg-stdin.h
+ create mode 100644 src/tempfd.c
+ create mode 100644 src/tempfd.h
