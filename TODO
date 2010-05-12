@@ -5,11 +5,18 @@ file removing that task, in the same commit.
 Dual encode
 	* Add camera encode: merge shcodecs-record into a module
 
+Ogg stdin
+	* handle all streams (not just vorbis)
+	* handle skeleton (create / rewrite)
 Ogg capture streaming
 	* camera -> theora (oggz + libtheora)
-	* add vorbis support (fishsound)
+	* add vorbis encode support (fishsound)
 	* oggz-chop / Media Fragments
 	* rate-limited file serving (oggz)
+
+H.264
+	* test with JWPlayer: see
+	http://blog.kfish.org/2010/04/http-h264-from-multiple-cameras-with.html?showComment=1272719834612#c7338027299360101044
 
 V4L2 control interface
 	Currently have a kongou interface, using kgctrl.
