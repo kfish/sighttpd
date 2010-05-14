@@ -24,6 +24,11 @@
 
 #define x_strdup(s) ((s)?strdup((s)):(NULL))
 
+struct header_tracker {
+  long serialno;
+  size_t num_headers;
+};
+
 struct oggstdin {
 	const char * path;
 	const char * content_type;
@@ -35,7 +40,8 @@ struct oggstdin {
 
 	int headers_fd;
 	size_t headers_len; /* pointer to current writeable position in headers */
-	int nr_headers_got;
+	int in_headers;
+        list_t *header_tracker;
 
 	OGGZ * oggz;
 };
@@ -48,18 +54,34 @@ oggstdin_read_page (OGGZ * oggz, const ogg_page * og, long serialno, void * data
 	struct oggstdin * st = (struct oggstdin *)data;
 
 	if (ogg_page_bos(og)) {
-		st->headers_len = 0;
-		st->nr_headers_got = 0;
-		lseek (st->headers_fd, 0, SEEK_SET);
+                if (st->in_headers == 0) {
+		        st->headers_len = 0;
+		        lseek (st->headers_fd, 0, SEEK_SET);
+                }
+		++st->in_headers;
 	}
 
-	if (st->nr_headers_got < 3) {
-		st->nr_headers_got += ogg_page_packets (og);
+	if (st->in_headers) {
+                list_t *list = st->header_tracker;
+                while (list && ((struct header_tracker*)list->data)->serialno != serialno)
+                        list = list->next;
+                if (!list) {
+                        struct header_tracker *ht = malloc(sizeof(struct header_tracker));
+                        ht->serialno = serialno;
+                        ht->num_headers = 0;
+                        list = st->header_tracker = list_prepend(st->header_tracker, ht);
+                }
+                ((struct header_tracker*)list->data)->num_headers += ogg_page_packets (og);
+
 		write (st->headers_fd, og->header, og->header_len);
 		st->headers_len += og->header_len;
 		write (st->headers_fd, og->body, og->body_len);
 		st->headers_len += og->body_len;
 		fsync (st->headers_fd);
+
+                if (((struct header_tracker*)list->data)->num_headers >= oggz_stream_get_numheaders(oggz, serialno)) {
+                        --st->in_headers;
+                }
 	} else {
 		ringbuffer_write (&st->rb, og->header, og->header_len);
 		ringbuffer_write (&st->rb, og->body, og->body_len);
@@ -129,7 +151,7 @@ oggstdin_body (int fd, http_request * request, params_t * request_headers, void 
 	off_t offset=0;
         int rd;
 
-	while (st->nr_headers_got < 3) {
+	while (st->in_headers) {
 		usleep (10000);
 	}
 
@@ -170,6 +192,7 @@ oggstdin_delete (void * data)
 	free (st->path);
 	free (st->content_type);
         free (st->rb.data);
+        list_free_with (st->header_tracker, &free);
 
 	close (st->headers_fd);
 
@@ -209,7 +232,8 @@ oggstdin_resource (const char * path, const char * content_type)
 	st->active = 1;
 
 	st->headers_len = 0;
-	st->nr_headers_got = 0;
+	st->in_headers = 0;
+        st->header_tracker = list_new ();
 
 	return resource_new (oggstdin_check, oggstdin_head, oggstdin_body, oggstdin_delete, st);
 }
