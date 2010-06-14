@@ -88,6 +88,8 @@ struct camera_data {
 };
 
 struct encode_data {
+	pthread_t thread;
+
 	char * path;
 	char * ctlfile;
 
@@ -364,10 +366,21 @@ struct camera_data * get_camera (char * devicename, int width, int height)
 	return &pvt->cameras[i];
 }
 
+void * encode_main (void * data)
+{
+	SHCodecs_Encoder * encoder = (SHCodecs_Encoder *)data;
+	int ret = -1;
+
+	ret = shcodecs_encoder_run (encoder);
+
+	return (void *)ret;
+}
+
 void * shrecord_main (void * data)
 {
 	struct private_data *pvt = (struct private_data *)data;
 	int return_code, rc;
+	void *thread_ret;
 	unsigned int pixel_format;
 	int c, i=0;
 	long target_fps10;
@@ -485,13 +498,24 @@ void * shrecord_main (void * data)
 		}
 	}
 
-	rc = shcodecs_encoder_run_multiple(pvt->encoders, pvt->nr_encoders);
-	if (rc < 0) {
-		fprintf(stderr, "Error encoding, error code=%d\n", rc);
-		rc = NULL;
+	for (i=0; i < pvt->nr_encoders; i++) {
+		rc = pthread_create(&pvt->encdata[i]->thread, NULL, encode_main, pvt->encoders[i]);
+		if (rc)
+			fprintf(stderr, "Thread %d failed: %s\n", i, strerror(rc));
 	}
-	/* Exit ok if shcodecs_encoder_run was stopped cleanly */
-	if (rc == 1) rc = NULL; /* ??? */
+
+	rc = 0;
+	for (i=0; i < pvt->nr_encoders; i++) {
+		if (pvt->encdata[i]->thread != 0) {
+			pthread_join(pvt->encdata[i]->thread, &thread_ret);
+			if ((int)thread_ret < 0) {
+				rc = (int)thread_ret;
+				fprintf(stderr, "Error encoding %d\n", i);
+			} else {
+				fprintf(stderr, "Encode %d Success\n", i);
+			}
+		}
+	}
 
 	shrecord_cleanup ();
 
