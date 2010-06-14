@@ -106,6 +106,8 @@ struct encode_data {
         struct ringbuffer rb;
 
 	struct framerate * enc_framerate;
+	int skipsize;
+	int skipcount;
 };
 
 struct private_data {
@@ -178,6 +180,7 @@ void *convert_main(void *data)
 {
 	struct camera_data *cam = (struct camera_data*)data;
 	struct private_data *pvt = &pvt_data;
+	struct encode_data *encdata;
 	int pitch, offset;
 	void *ptr;
 	unsigned long enc_y, enc_c;
@@ -191,6 +194,9 @@ void *convert_main(void *data)
 		for (i=0; i < pvt->nr_encoders; i++) {
 			if (pvt->encdata[i]->camera != cam) continue;
 
+			encdata = pvt->encdata[i];
+
+			if (encdata->skipcount == 0) {
 			shcodecs_encoder_get_input_physical_addr (pvt->encoders[i], (unsigned int *)&enc_y, (unsigned int *)&enc_c);
 
 			/* We are clipping, not scaling, as we need to perform a rotation,
@@ -200,13 +206,18 @@ void *convert_main(void *data)
 				cap_y, cap_c,
 				cam->cap_w, cam->cap_h, cam->cap_w, SHVEU_YCbCr420,
 				enc_y, enc_c,
-				pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->enc_w, SHVEU_YCbCr420,
+				encdata->enc_w, encdata->enc_h, encdata->enc_w, SHVEU_YCbCr420,
 				pvt->rotate_cap);
 			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
 
 			/* Let the encoder get_input function return */
-			pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
+			pthread_mutex_unlock(&encdata->encode_start_mutex);
+			}
+
+			encdata->skipcount++;
+			encdata->skipcount %= encdata->skipsize;
 		}
+
 
 		if (cam == pvt->encdata[0]->camera && pvt->do_preview) {
 			/* Use the VEU to scale the capture buffer to the frame buffer */
@@ -458,11 +469,11 @@ void * shrecord_main (void * data)
 
 		//shcodecs_encoder_set_xpic_size(pvt->encoders[i], pvt->encdata[i]->enc_w);
 		//shcodecs_encoder_set_ypic_size(pvt->encoders[i], pvt->encdata[i]->enc_h);
-	}
 
-	/* Set up the frame rate timer to match the encode framerate */
-	target_fps10 = shcodecs_encoder_get_frame_rate(pvt->encoders[0]);
-	fprintf (stderr, "Target framerate:   %.1f fps\n", target_fps10 / 10.0);
+		target_fps10 = shcodecs_encoder_get_frame_rate(pvt->encoders[i]);
+		pvt->encdata[i]->skipsize = 300 / target_fps10;
+		pvt->encdata[i]->skipcount = 0;
+	}
 
 	for (i=0; i < pvt->nr_cameras; i++) {
 		capture_start_capturing(pvt->cameras[i].ceu);
