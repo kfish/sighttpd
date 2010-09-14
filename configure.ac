@@ -81,38 +81,38 @@ else
 fi
 AM_CONDITIONAL(HAVE_OGGZ, [test "x$HAVE_OGGZ" = "xyes"])
 
-dnl
-dnl Check for libuiomux
-dnl
-PKG_CHECK_MODULES(UIOMUX, uiomux >= 1.1.0, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
-if test "x$HAVE_UIOMUX" = "xyes" ; then
-  AC_DEFINE(HAVE_UIOMUX, [], [Define if have libuiomux])
-  AC_SUBST(UIOMUX_CFLAGS)
-  AC_SUBST(UIOMUX_LIBS)
-fi
-AM_CONDITIONAL(HAVE_UIOMUX, [test "x$HAVE_UIOMUX" = "xyes"])
+#dnl
+#dnl Check for libuiomux
+#dnl
+#PKG_CHECK_MODULES(UIOMUX, uiomux >= 1.1.0, HAVE_UIOMUX="yes", HAVE_UIOMUX="no")
+#if test "x$HAVE_UIOMUX" = "xyes" ; then
+#  AC_DEFINE(HAVE_UIOMUX, [], [Define if have libuiomux])
+#  AC_SUBST(UIOMUX_CFLAGS)
+#  AC_SUBST(UIOMUX_LIBS)
+#fi
+#AM_CONDITIONAL(HAVE_UIOMUX, [test "x$HAVE_UIOMUX" = "xyes"])
 
-dnl
-dnl Check for libshveu
-dnl
-PKG_CHECK_MODULES(SHVEU, shveu >= 1.2.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
-if test "x$HAVE_SHVEU" = "xyes" ; then
-  AC_DEFINE(HAVE_SHVEU, [], [Define if have libshveu])
-  AC_SUBST(SHVEU_CFLAGS)
-  AC_SUBST(SHVEU_LIBS)
-fi
-AM_CONDITIONAL(HAVE_SHVEU, [test "x$HAVE_SHVEU" = "xyes"])
+#dnl
+#dnl Check for libshveu
+#dnl
+#PKG_CHECK_MODULES(SHVEU, shveu >= 1.2.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
+#if test "x$HAVE_SHVEU" = "xyes" ; then
+#  AC_DEFINE(HAVE_SHVEU, [], [Define if have libshveu])
+#  AC_SUBST(SHVEU_CFLAGS)
+#  AC_SUBST(SHVEU_LIBS)
+#fi
+#AM_CONDITIONAL(HAVE_SHVEU, [test "x$HAVE_SHVEU" = "xyes"])
 
-dnl
-dnl Check for libshcodecs
-dnl
-PKG_CHECK_MODULES(SHCODECS, shcodecs >= 1.1.0, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
-if test "x$HAVE_SHCODECS" = "xyes" ; then
-  AC_DEFINE(HAVE_SHCODECS, [], [Define if have libshcodecs])
-  AC_SUBST(SHCODECS_CFLAGS)
-  AC_SUBST(SHCODECS_LIBS)
-fi
-AM_CONDITIONAL(HAVE_SHCODECS, [test "x$HAVE_SHCODECS" = "xyes"])
+#dnl
+#dnl Check for libshcodecs
+#dnl
+#PKG_CHECK_MODULES(SHCODECS, shcodecs >= 1.1.0, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
+#if test "x$HAVE_SHCODECS" = "xyes" ; then
+#  AC_DEFINE(HAVE_SHCODECS, [], [Define if have libshcodecs])
+#  AC_SUBST(SHCODECS_CFLAGS)
+#  AC_SUBST(SHCODECS_LIBS)
+#fi
+#AM_CONDITIONAL(HAVE_SHCODECS, [test "x$HAVE_SHCODECS" = "xyes"])
 
 # Checks for header files.
 AC_HEADER_RESOLV

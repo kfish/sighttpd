@@ -38,29 +38,18 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <signal.h>
-#include <linux/videodev2.h>	/* For pixel formats */
-#include <linux/ioctl.h>
 #include <pthread.h>
 #include <errno.h>
-#include <sys/prctl.h>
-
-#include <uiomux/uiomux.h>
-#include <shveu/shveu.h>
-#include <shcodecs/shcodecs_encoder.h>
+#include <poll.h>
 
 #include "http-reqline.h"
 #include "http-status.h"
 #include "params.h"
 #include "resource.h"
 
-#include "avcbencsmp.h"
-#include "capture.h"
-#include "ControlFileUtil.h"
-#include "framerate.h"
-#include "display.h"
 #include "ringbuffer.h"
-#include "thrqueue.h"
 
 /* #define DEBUG */
 
@@ -70,64 +59,34 @@
 /* Maximum number of encoders per camera */
 #define MAX_ENCODERS 8
 
+/* Directory path to the named pipe */
+#define TMP_DIR	"/tmp"
+
 #define x_strdup(s) ((s)?strdup((s)):(NULL))
 
-struct camera_data {
-	char * devicename;
-
-	/* Captured frame information */
-	capture *ceu;
-	unsigned long cap_w;
-	unsigned long cap_h;
-	int captured_frames;
-
-	pthread_t convert_thread;
-	pthread_t capture_thread;
-	struct Queue * captured_queue;
-	pthread_mutex_t capture_start_mutex;
-
-	struct framerate * cap_framerate;
-};
-
 struct encode_data {
-	char * path;
-	char * ctlfile;
+	pthread_t thread;
+	int alive;
 
-	APPLI_INFO ainfo;
+	char path[MAXPATHLEN];
+	char ctrl_filename[MAXPATHLEN];
+	char fifo[MAXPATHLEN];
+	char fifo_path[MAXPATHLEN];
 
-	struct camera_data * camera;
-
-	long stream_type;
-
-	pthread_mutex_t encode_start_mutex;
-
-	unsigned long enc_w;
-	unsigned long enc_h;
-
-	int active;
-        struct ringbuffer rb;
-
-	struct framerate * enc_framerate;
+	struct ringbuffer rb;
 };
 
 struct private_data {
-	UIOMux * uiomux;
-
 	pthread_t main_thread;
 
-	int nr_cameras;
-	struct camera_data cameras[MAX_CAMERAS];
-
 	int nr_encoders;
-	SHCodecs_Encoder *encoders[MAX_ENCODERS];
-	struct encode_data *encdata[MAX_ENCODERS];
+	struct encode_data encdata[MAX_ENCODERS];
+
+	struct pollfd pfds[MAX_ENCODERS];
+	pid_t shrecord_pid;
+	pid_t pid;
 
 	int do_preview;
-	void *display;
-
-	int rotate_cap;
-
-	int output_frames;
 };
 
 void debug_printf(const char *fmt, ...)
@@ -144,200 +103,28 @@ struct private_data pvt_data;
 
 static int alive=1;
 
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*****************************************************************************/
 
-/* Callback for frame capture */
-static void
-capture_image_cb(capture *ceu, const unsigned char *frame_data, size_t length,
-		 void *user_data)
-{
-	struct camera_data *cam = (struct camera_data*)user_data;
-
-	queue_enq (cam->captured_queue, frame_data);
-	cam->captured_frames++;
-}
-
-void *capture_main(void *data)
-{
-	struct camera_data *cam = (struct camera_data*)data;
-
-	while(alive){
-		framerate_wait(cam->cap_framerate);
-		capture_get_frame(cam->ceu, capture_image_cb, cam);
-
-		/* This mutex is unlocked once the capture buffer is free */
-		pthread_mutex_lock(&cam->capture_start_mutex);
-	}
-
-	capture_stop_capturing(cam->ceu);
-
-	pthread_mutex_unlock(&cam->capture_start_mutex);
-
-	return NULL;
-}
-
-
-void *convert_main(void *data)
-{
-	struct camera_data *cam = (struct camera_data*)data;
-	struct private_data *pvt = &pvt_data;
-	int pitch, offset;
-	void *ptr;
-	unsigned long enc_y, enc_c;
-	unsigned long cap_y, cap_c;
-	int i;
-
-	while(alive){
-		cap_y = (unsigned long) queue_deq(cam->captured_queue);
-		cap_c = cap_y + (cam->cap_w * cam->cap_h);
-
-		for (i=0; i < pvt->nr_encoders; i++) {
-			if (pvt->encdata[i]->camera != cam) continue;
-
-			shcodecs_encoder_get_input_physical_addr (pvt->encoders[i], (unsigned int *)&enc_y, (unsigned int *)&enc_c);
-
-			/* We are clipping, not scaling, as we need to perform a rotation,
-		   	but the VEU cannot do a rotate & scale at the same time. */
-			uiomux_lock (pvt->uiomux, UIOMUX_SH_VEU);
-			shveu_operation(0,
-				cap_y, cap_c,
-				cam->cap_w, cam->cap_h, cam->cap_w, SHVEU_YCbCr420,
-				enc_y, enc_c,
-				pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->enc_w, SHVEU_YCbCr420,
-				pvt->rotate_cap);
-			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
-
-			/* Let the encoder get_input function return */
-			pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
-		}
-
-		if (cam == pvt->encdata[0]->camera && pvt->do_preview) {
-			/* Use the VEU to scale the capture buffer to the frame buffer */
-			uiomux_lock (pvt->uiomux, UIOMUX_SH_VEU);
-			display_update(pvt->display,
-					cap_y, cap_c,
-					cam->cap_w, cam->cap_h, cam->cap_w,
-					V4L2_PIX_FMT_NV12);
-			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
-		}
-
-		capture_queue_buffer (cam->ceu, cap_y);
-		pthread_mutex_unlock(&cam->capture_start_mutex);
-
-		pvt->output_frames++;
-	}
-
-	return NULL;
-}
-
-/* SHCodecs_Encoder_Input callback for acquiring an image */
-static int get_input(SHCodecs_Encoder *encoder, void *user_data)
-{
-	struct encode_data *encdata = (struct encode_data*)user_data;
-
-	/* This mutex is unlocked once the capture buffer has been copied to the
-	   encoder input buffer */
-	pthread_mutex_lock(&encdata->encode_start_mutex);
-
-	if (encdata->enc_framerate == NULL) {
-		encdata->enc_framerate = framerate_new_measurer ();
-	}
-
-	return (alive?0:1);
-}
-
-/* SHCodecs_Encoder_Output callback for writing out the encoded data */
-static int write_output(SHCodecs_Encoder *encoder,
-			unsigned char *data, int length, void *user_data)
-{
-	struct encode_data *encdata = (struct encode_data*)user_data;
-	double ifps, mfps;
-
-	if (shcodecs_encoder_get_frame_num_delta(encoder) > 0 &&
-			encdata->enc_framerate != NULL) {
-		if (encdata->enc_framerate->nr_handled >= encdata->ainfo.frames_to_encode &&
-				encdata->ainfo.frames_to_encode > 0)
-			return 1;
-		framerate_mark (encdata->enc_framerate);
-		ifps = framerate_instantaneous_fps (encdata->enc_framerate);
-		mfps = framerate_mean_fps (encdata->enc_framerate);
-		if (encdata->enc_framerate->nr_handled % 10 == 0) {
-			fprintf (stderr, "  Encoding @ %4.2f fps \t(avg %4.2f fps)\r", ifps, mfps);
-		}
-	}
-
-	ringbuffer_write (&encdata->rb, data, length);
-
-	return (alive?0:1);
-}
-
-static void
+void
 shrecord_cleanup (void)
 {
-	double time;
 	struct private_data *pvt = &pvt_data;
-	int i;
+	struct encode_data *eds = pvt->encdata;
+	int i, status;
 
-	for (i=0; i < pvt->nr_cameras; i++) {
-		struct camera_data * cam = &pvt->cameras[i];
-
-		time = (double)framerate_elapsed_time (cam->cap_framerate);
-		time /= 1000000;
-
-		debug_printf ("\n");
-		debug_printf("Elapsed time (capture): %0.3g s\n", time);
-
-		debug_printf("Captured %d frames (%.2f fps)\n", cam->captured_frames,
-			 	(double)cam->captured_frames/time);
-		if (pvt->do_preview) {
-			debug_printf("Displayed %d frames (%.2f fps)\n", pvt->output_frames,
-					(double)pvt->output_frames/time);
-		}
-
-		framerate_destroy (cam->cap_framerate);
+	/* kill child process if needed */
+	if (pvt->shrecord_pid) {
+		kill(pvt->shrecord_pid, SIGKILL);
+		waitpid(pvt->shrecord_pid, &status, 0);
 	}
 
-	for (i=0; i < pvt->nr_encoders; i++) {
-		time = (double)framerate_elapsed_time (pvt->encdata[i]->enc_framerate);
-		time /= 1000000;
-
-		debug_printf("[%d] Elapsed time (encode): %0.3g s\n", i, time);
-		debug_printf("[%d] Encoded %d frames (%.2f fps)\n", i,
-				pvt->encdata[i]->enc_framerate->nr_handled,
-			 	framerate_mean_fps (pvt->encdata[i]->enc_framerate));
-
-		shcodecs_encoder_close(pvt->encoders[i]);
-
-		framerate_destroy (pvt->encdata[i]->enc_framerate);
+	/* clean files & fifos */
+	for(i = 0; i < pvt->nr_encoders; i++) {
+		unlink(eds[i].fifo_path);
+		unlink(eds[i].ctrl_filename);
 	}
-
-	alive=0;
-
-	for (i=0; i < pvt->nr_cameras; i++) {
-		struct camera_data * cam = &pvt->cameras[i];
-
-		pthread_join (cam->convert_thread, NULL);
-		pthread_join (cam->capture_thread, NULL);
-
-		capture_close(cam->ceu);
-	}
-
-	if (pvt->do_preview)
-		display_close(pvt->display);
-	shveu_close();
-
-	for (i=0; i < pvt->nr_encoders; i++) {
-		pvt->encdata[i]->active = 0;
-		pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
-		pthread_mutex_destroy (&pvt->encdata[i]->encode_start_mutex);
-	}
-
-	for (i=0; i < pvt->nr_cameras; i++) {
-		struct camera_data * cam = &pvt->cameras[i];
-		pthread_mutex_destroy (&cam->capture_start_mutex);
-	}
-
-	uiomux_close (pvt->uiomux);
 }
 
 void
@@ -345,180 +132,114 @@ shrecord_sighandler (void)
 {
 	struct private_data *pvt = &pvt_data;
 
-	alive = 0;
-
-	pthread_join (pvt->main_thread, NULL);
+	shrecord_cleanup();
 }
 
-struct camera_data * get_camera (char * devicename, int width, int height)
+void
+shrecord_sigchld_handler (int ignore)
 {
 	struct private_data *pvt = &pvt_data;
-	int i;
+	int status;
 
-	for (i=0; i < MAX_CAMERAS; i++) {
-		if (pvt->cameras[i].devicename == NULL)
-			break;
+	waitpid(pvt->shrecord_pid, &status, 0);
+	pvt->shrecord_pid = 0;
 
-		if (!strcmp (pvt->cameras[i].devicename, devicename)) {
-			return &pvt->cameras[i];
-		}
-	}
-
-	if (i == MAX_CAMERAS) return NULL;
-
-	pvt->cameras[i].devicename = devicename;
-	pvt->cameras[i].cap_w = width;
-	pvt->cameras[i].cap_h = height;
-
-	pvt->nr_cameras = i+1;
-
-	return &pvt->cameras[i];
+	shrecord_cleanup();
 }
+#define BUFFER_SIZE	(128 * 1024)
 
 void * shrecord_main (void * data)
 {
 	struct private_data *pvt = (struct private_data *)data;
-	int return_code, rc;
-	unsigned int pixel_format;
-	int c, i=0;
-	long target_fps10;
-	unsigned long rotate_input;
+	struct pollfd *pfds = pvt->pfds;
+	struct encode_data *eds = pvt->encdata;
+	int i, n, count;
+	unsigned char buffer[BUFFER_SIZE];
+	char *argv[MAX_ENCODERS + 3];
+	static char *shcodec_record = "shcodecs-record";
+	static char *preview_off = "-P";
+
+	/* structure argument */
+	n = 0;
+	argv[n++] = shcodec_record;
+	if (!pvt->do_preview)
+		argv[n++] = preview_off;
+	for(i = 0; i < pvt->nr_encoders; i++)
+	    	argv[n++] = eds[i].ctrl_filename;
+
+	/* launch shcodec_record */
+	pvt->shrecord_pid = fork();
+	if (pvt->shrecord_pid < 0) {
+		fprintf(stderr, "Can't fork()\n");
+		goto clean;
+	} if (pvt->shrecord_pid == 0) {
+		execvp(argv[0], argv);
+
+		perror("execvp() failed");
+		exit(1);
+	} else {
+	    	fprintf(stderr, "Launched shcodec-record successively\n");
+		signal(SIGCHLD, shrecord_sigchld_handler);
+	}
+
+	fprintf(stderr, "# of encs = %d\n", pvt->nr_encoders);
 
 	if (pvt->nr_encoders == 0)
 		return NULL;
 
-	pvt->output_frames = 0;
-	pvt->rotate_cap = SHVEU_NO_ROT;
+	for(i = 0; i < pvt->nr_encoders; i++)
+		pfds[i].fd = -1;
 
-	pvt->uiomux = uiomux_open ();
-
-	for (i=0; i < pvt->nr_cameras; i++) {
-		/* Initalise the mutexes */
-		pthread_mutex_init(&pvt->cameras[i].capture_start_mutex, NULL);
-		pthread_mutex_lock(&pvt->cameras[i].capture_start_mutex);
-
-		/* Initialize the queues */
-		pvt->cameras[i].captured_queue = queue_init();
-		queue_limit (pvt->cameras[i].captured_queue, 2);
-
-		/* Create the threads */
-		rc = pthread_create(&pvt->cameras[i].convert_thread, NULL, convert_main, &pvt->cameras[i]);
-		if (rc) {
-			fprintf(stderr, "pthread_create failed, exiting\n");
-			return NULL;
-		}
-
-		/* Camera capture initialisation */
-		pvt->cameras[i].ceu = capture_open_userio(pvt->cameras[i].devicename, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h, pvt->uiomux);
-		if (pvt->cameras[i].ceu == NULL) {
-			fprintf(stderr, "capture_open failed, exiting\n");
-			return NULL;
-		}
-		capture_set_use_physical(pvt->cameras[i].ceu, 1);
-		pvt->cameras[i].cap_w = capture_get_width(pvt->cameras[i].ceu);
-		pvt->cameras[i].cap_h = capture_get_height(pvt->cameras[i].ceu);
-
-		pixel_format = capture_get_pixel_format (pvt->cameras[i].ceu);
-		if (pixel_format != V4L2_PIX_FMT_NV12) {
-			fprintf(stderr, "Camera capture pixel format is not supported\n");
-			return NULL;
-		}
-		debug_printf("Camera %d resolution:  %dx%d\n", i, pvt->cameras[i].cap_w, pvt->cameras[i].cap_h);
+	for(i = 0; i < pvt->nr_encoders; i++) {
+		fprintf(stderr, "fifo for #%d = '%s'\n",i, eds[i].fifo_path);
+		pfds[i].fd = open(eds[i].fifo_path, O_RDWR, 0);
+		if (pfds[i].fd < 0) {
+			fprintf(stderr, "Can't open fifo - %s\n", eds[i].fifo_path);
+			goto clean;
+		}	
+		pfds[i].events = POLLIN;
+		pfds[i].revents = 0;
 	}
 
-	/* VEU initialisation */
-	if (shveu_open() < 0) {
-		fprintf (stderr, "Could not open VEU, exiting\n");
+	while(1) {
+		n = poll(pfds, pvt->nr_encoders, 0);
+
+		if (n < 0) {
+			fprintf(stderr, "poll() failed.\n");
+			goto clean;
+		}
+
+		if (n > 0) {
+			for(i = 0; i < pvt->nr_encoders; i++) {
+				if (pfds[i].revents & POLLIN) {
+					pfds[i].revents = 0;
+
+					count = read(pfds[i].fd, buffer, BUFFER_SIZE);
+					if (count < 0) {
+						fprintf(stderr, "read() failed on %s.\n",
+							eds[i].fifo);
+						goto clean;
+					}
+					ringbuffer_write(&eds[i].rb, buffer, count);
+				}
+			}
+		}
+
 	}
+	
 
-	if (pvt->do_preview) {
-		pvt->display = display_open(0);
-		if (!pvt->display) {
-			return NULL;
-		}
-	}
+clean:
+	shrecord_cleanup();
 
-	for (i=0; i < pvt->nr_encoders; i++) {
-#if 0
-		if (pvt->rotate_cap == SHVEU_NO_ROT) {
-			pvt->encdata[i]->enc_w = pvt->cap_w;
-			pvt->encdata[i]->enc_h = pvt->cap_h;
-		} else {
-			pvt->encdata[i]->enc_w = pvt->cap_h;
-			pvt->encdata[i]->enc_h = pvt->cap_h * pvt->cap_h / pvt->cap_w;
-			/* Round down to nearest multiple of 16 for VPU */
-			pvt->encdata[i]->enc_w = pvt->encdata[i]->enc_w - (pvt->encdata[i]->enc_w % 16);
-			pvt->encdata[i]->enc_h = pvt->encdata[i]->enc_h - (pvt->encdata[i]->enc_h % 16);
-			debug_printf("[%d] Rotating & cropping camera image ...\n", i);
-		}
-#else
-		/* Override the encoding frame size in case of rotation */
-		if (pvt->rotate_cap == SHVEU_NO_ROT) {
-			pvt->encdata[i]->enc_w = pvt->encdata[i]->ainfo.xpic;
-			pvt->encdata[i]->enc_h = pvt->encdata[i]->ainfo.ypic;
-		} else {
-			pvt->encdata[i]->enc_w = pvt->encdata[i]->ainfo.ypic;
-			pvt->encdata[i]->enc_h = pvt->encdata[i]->ainfo.xpic;
-		}
-		debug_printf("[%d] Encode resolution:  %dx%d\n", i, pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h);
-#endif
-
-		/* VPU Encoder initialisation */
-		pvt->encoders[i] = shcodecs_encoder_init(pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->stream_type);
-		if (pvt->encoders[i] == NULL) {
-			fprintf(stderr, "shcodecs_encoder_init failed, exiting\n");
-			return NULL;
-		}
-		shcodecs_encoder_set_input_callback(pvt->encoders[i], get_input, pvt->encdata[i]);
-		shcodecs_encoder_set_output_callback(pvt->encoders[i], write_output, pvt->encdata[i]);
-
-		return_code = ctrlfile_set_enc_param(pvt->encoders[i], pvt->encdata[i]->ctlfile);
-		if (return_code < 0) {
-			fprintf (stderr, "Problem with encoder params in control file!\n");
-			return NULL;
-		}
-
-		//shcodecs_encoder_set_xpic_size(pvt->encoders[i], pvt->encdata[i]->enc_w);
-		//shcodecs_encoder_set_ypic_size(pvt->encoders[i], pvt->encdata[i]->enc_h);
-	}
-
-	/* Set up the frame rate timer to match the encode framerate */
-	target_fps10 = shcodecs_encoder_get_frame_rate(pvt->encoders[0]);
-	fprintf (stderr, "Target framerate:   %.1f fps\n", target_fps10 / 10.0);
-
-	for (i=0; i < pvt->nr_cameras; i++) {
-		/* Initialize framerate timer */
-		pvt->cameras[i].cap_framerate = framerate_new_timer (target_fps10 / 10.0);
-
-		capture_start_capturing(pvt->cameras[i].ceu);
-
-		rc = pthread_create(&pvt->cameras[i].capture_thread, NULL, capture_main, &pvt->cameras[i]);
-		if (rc){
-			fprintf(stderr, "pthread_create failed, exiting\n");
-			return NULL;
-		}
-	}
-
-	rc = shcodecs_encoder_run_multiple(pvt->encoders, pvt->nr_encoders);
-	if (rc < 0) {
-		fprintf(stderr, "Error encoding, error code=%d\n", rc);
-		rc = NULL;
-	}
-	/* Exit ok if shcodecs_encoder_run was stopped cleanly */
-	if (rc == 1) rc = NULL; /* ??? */
-
-	shrecord_cleanup ();
-
-	return rc;
-
-exit_err:
-	/* General exit, prior to thread creation */
+	/* shrecord_run() and caller anyway ignore the return value... */
 	return NULL;
 }
 
 int shrecord_run (void)
 {
 	struct private_data *pvt = &pvt_data;
+
+	fprintf(stderr, "starting shrecord_main thread\n");
 
 	return pthread_create(&pvt->main_thread, NULL, shrecord_main, pvt);
 }
@@ -553,7 +274,7 @@ shrecord_body (int fd, http_request * request, params_t * request_headers, void 
 
         rd = ringbuffer_open (&ed->rb);
 
-        while (ed->active) {
+        while (ed->alive) {
                 while ((avail = ringbuffer_avail (&ed->rb, rd)) == 0)
                         usleep (10000);
 
@@ -579,72 +300,88 @@ shrecord_delete (void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
 
-	free (ed->path);
-	free (ed->ctlfile);
         free (ed->rb.data);
-	free (ed);
+}
+
+static int
+shrecord_tweak_ctrlfile(const char *orig_ctrl, const char *new_ctrl, const char *fifo)
+{
+	char path[MAXPATHLEN];
+	char buffer[BUFSIZ];
+	FILE *ofp, *nfp;
+
+	if ((nfp = fopen(new_ctrl, "w")) == NULL) {
+		fprintf(stderr, "Can't open '%s'.\n", new_ctrl);
+		return -1;
+	}
+
+	if ((ofp = fopen(orig_ctrl, "r")) == NULL) {
+		fprintf(stderr, "Can't open original control file '%s'\n", orig_ctrl);
+		return -1;
+	}
+
+	while(fgets(buffer, BUFSIZ, ofp)) {
+		if (!strncmp(buffer, "output_directry", 15))
+			fprintf(nfp, "output_directry = %s;\n", TMP_DIR);
+		else if (!strncmp(buffer, "output_stream_file", 18))
+			fprintf(nfp, "output_stream_file = %s;\n", fifo);
+		else
+			fputs(buffer, nfp);
+	}
+
+	fclose(nfp);
+	fclose(ofp);
+
+	return 0;
+}
+
+static int
+shrecord_mkfifo ( char *fifo ) 
+{
+	struct stat stat;
+
+	if (!lstat(fifo, &stat))
+		return (stat.st_mode & S_IFIFO) ? 0 : -1;
+
+	return mkfifo(fifo, 077);
 }
 
 struct resource *
-shrecord_resource (char * path, char * ctlfile)
+shrecord_resource (const char * path, const char * ctlfile)
 {
-	struct encode_data * ed;
+	struct encode_data * ed = NULL;
 	struct private_data *pvt = &pvt_data;
 	int return_code;
-        unsigned char * data;
+        unsigned char * data = NULL;
         size_t len = 4096*16*32;
 
 	if (pvt->nr_encoders > MAX_ENCODERS)
 		return NULL;
 
-	if ((ed = calloc (1, sizeof(*ed))) == NULL)
+	ed = &pvt->encdata[pvt->nr_encoders];
+
+	strncpy(ed->path, path, MAXPATHLEN);
+	snprintf(ed->ctrl_filename, MAXPATHLEN, TMP_DIR "/shrecord_ctrl-%d.%d",
+		 pvt->pid, pvt->nr_encoders);
+	snprintf(ed->fifo, MAXPATHLEN, "shrecord_fifo-%d.%d",
+		 pvt->pid, pvt->nr_encoders);
+	snprintf(ed->fifo_path, MAXPATHLEN, TMP_DIR "/%s", ed->fifo);
+
+	/* create tweaked control file */
+	if (shrecord_tweak_ctrlfile(ctlfile, ed->ctrl_filename, ed->fifo) < 0)
 		return NULL;
 
-        if ((data = malloc (len)) == NULL) {
-                free (ed);
-                return NULL;
-        }
-
-	ed->path = x_strdup (path);
-	if (ed->path == NULL) {
-		free (ed);
-		free (data);
+	/* create fifo */
+	if (shrecord_mkfifo(ed->fifo_path) < 0) 
 		return NULL;
-	}
-	ed->ctlfile = x_strdup (ctlfile);
-	if (ed->ctlfile == NULL) {
-		free (ed);
-		free (data);
-		free (ed->path);
+
+	/* init ring buffer */
+        if ((data = malloc (len)) == NULL)
 		return NULL;
-	}
-
-	return_code = ctrlfile_get_params(ed->ctlfile,
-			&ed->ainfo, &ed->stream_type);
-	if (return_code < 0) {
-		fprintf(stderr, "Error opening control file %s.\n", ed->ctlfile);
-		return NULL;
-	}
-
-	/* Override frames_to_encode to ensure streaming */
-	ed->ainfo.frames_to_encode = -1;
-
-	ed->camera = get_camera (ed->ainfo.input_file_name_buf, ed->ainfo.xpic, ed->ainfo.ypic);
-
-	pvt->encdata[pvt->nr_encoders] = ed;
-	pvt->nr_encoders++;
-
-#if 0
-	debug_printf("Input file: %s\n", ed->ainfo.input_file_name_buf);
-	debug_printf("Output file: %s\n", ed->ainfo.output_file_name_buf);
-#endif
-
         ringbuffer_init (&ed->rb, data, len);
 
-	pthread_mutex_init(&ed->encode_start_mutex, NULL);
-	pthread_mutex_unlock(&ed->encode_start_mutex);
-
-	ed->active = 1;
+	ed->alive = 1;
+	pvt->nr_encoders++;
 
 	return resource_new (shrecord_check, shrecord_head, shrecord_body, shrecord_delete, ed);
 }
@@ -660,6 +397,8 @@ shrecord_resources (Dictionary * config)
 	struct resource * r;
 
 	l = list_new();
+
+	pvt->pid = getpid();
 
 	path = dictionary_lookup (config, "Path");
 	ctlfile = dictionary_lookup (config, "CtlFile");
@@ -684,9 +423,6 @@ shrecord_init (void)
 {
 	struct private_data *pvt = &pvt_data;
 	int ret;
-
-	if (prctl (PR_SET_UNALIGN, PR_UNALIGN_NOPRINT, 0, 0, 0) == -1)
-		perror ("prctl");
 
 	memset (pvt, 0, sizeof (pvt_data));
 
