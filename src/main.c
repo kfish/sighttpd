@@ -38,6 +38,8 @@ static char * progname;
 
 static char * optstring = "f:hv";
 
+static int sd = -1;
+
 #ifdef HAVE_GETOPT_LONG
 static struct option long_options[] = {
 	{ "config", required_argument, NULL, 'f'},
@@ -58,6 +60,10 @@ usage (const char * progname)
 
 void sig_handler(int sig)
 {
+	/* properly shutdown socket */
+	if (sd != -1)
+		shutdown(sd, SHUT_RDWR);
+
 #ifdef HAVE_OGGZ
 	oggstdin_sighandler ();
 #endif
@@ -77,7 +83,6 @@ void sig_handler(int sig)
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in addr;
-	int sd;
         struct sighttpd * sighttpd;
         struct cfg * cfg;
 	char * config_filename = DEFAULT_CONFIG_FILENAME;
@@ -160,6 +165,7 @@ int main(int argc, char *argv[])
 	shrecord_run();
 
         signal (SIGINT, sig_handler);
+        signal (SIGKILL, sig_handler);
         signal (SIGPIPE, sig_handler);
 
 	/* Create socket * */
