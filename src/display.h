@@ -1,58 +1,88 @@
 /**
  * SH display
- * Helper to send YCbCr420 frames to the frame buffer. It uses the VEU
- * hardware to scale & color convert the frames. it also handles aspect
- * ratios for you and double buffered screens.
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- *
- * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA  02110-1301 USA
- *
- * Phil Edworthy <phil.edworthy@renesas.com>
  *
  */
+
+#ifndef DISPLAY_H
+#define DISPLAY_H
+
 
 #include <linux/videodev2.h>	/* For pixel formats */
 
 /**
- * Open the frame buffer
- * \param veu Handle to VEU driver (opened with shveu_open)
+ * An opaque handle to the display.
+ */
+struct DISPLAY;
+typedef struct DISPLAY DISPLAY;
+
+/**
+ * Open the display
  * \retval 0 Failure
  * \retval >0 Handle
  */
-void *display_open(int veu);
+DISPLAY *display_open(void);
 
 /**
  * Close the frame buffer
- * \param p_display Handle returned from display_open
+ * \param disp Handle returned from display_open
  */
-void display_close(void *p_display);
+void display_close(DISPLAY *disp);
+
+/**
+ * Get the v4l2 format of the display
+ * \param disp Handle returned from display_open
+ */
+int display_get_format(DISPLAY *disp);
+
+/**
+ * Get the width of the display in pixels
+ * \param disp Handle returned from display_open
+ */
+int display_get_width(DISPLAY *disp);
+
+/**
+ * Get the height of the display in pixels
+ * \param disp Handle returned from display_open
+ */
+int display_get_height(DISPLAY *disp);
+
+/**
+ * Get a pointer to the back buffer
+ * \param disp Handle returned from display_open
+ */
+unsigned char *display_get_back_buff_virt(DISPLAY *disp);
+
+/**
+ * Get the physical address of the back buffer
+ * \param disp Handle returned from display_open
+ */
+unsigned long display_get_back_buff_phys(DISPLAY *disp);
+
+/**
+ * Place the back buffer on the screen
+ * \param disp Handle returned from display_open
+ */
+int display_flip(DISPLAY *disp);
+
+
+
+/* The functions below are used to place an image on the display */
 
 /**
  * Position the output fullscreen (but observe aspect ratio)
- * \param p_display Handle returned from display_open
+ * \param disp Handle returned from display_open
  */
-int display_set_fullscreen(void *p_display);
+void display_set_fullscreen(DISPLAY *disp);
 
 /**
  * Explicity position the output
- * \param p_display Handle returned from display_open
+ * \param disp Handle returned from display_open
  */
-int display_set_position(void *p_display, int w, int h, int x, int y);
+void display_set_position(DISPLAY *disp, int w, int h, int x, int y);
 
 /**
  * Send frame to the framebuffer
- * \param p_display Handle returned from display_open
+ * \param disp Handle returned from display_open
  * \param py Physical address of Y or RGB plane of source image
  * \param pc Physical address of CbCr plane of source image (ignored for RGB)
  * \param w Width in pixels of source image
@@ -61,7 +91,7 @@ int display_set_position(void *p_display, int w, int h, int x, int y);
  * \param v4l_fmt Format of source image (see <linux/videodev2.h>)
  */
 int display_update(
-	void *p_display,
+	DISPLAY *disp,
 	unsigned long py,
 	unsigned long pc,
 	int w,
@@ -69,4 +99,6 @@ int display_update(
 	int pitch,
 	int v4l_fmt
 );
+
+#endif
 

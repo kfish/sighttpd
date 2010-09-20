@@ -95,7 +95,7 @@ AM_CONDITIONAL(HAVE_UIOMUX, [test "x$HAVE_UIOMUX" = "xyes"])
 dnl
 dnl Check for libshveu
 dnl
-PKG_CHECK_MODULES(SHVEU, shveu >= 1.2.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
+PKG_CHECK_MODULES(SHVEU, shveu >= 1.4.0, HAVE_SHVEU="yes", HAVE_SHVEU="no")
 if test "x$HAVE_SHVEU" = "xyes" ; then
   AC_DEFINE(HAVE_SHVEU, [], [Define if have libshveu])
   AC_SUBST(SHVEU_CFLAGS)
