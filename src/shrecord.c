@@ -123,8 +123,7 @@ struct private_data {
 	struct encode_data *encdata[MAX_ENCODERS];
 
 	int do_preview;
-	DISPLAY *display;
-	SHVEU *veu;
+	void *display;
 
 	int rotate_cap;
 
@@ -154,7 +153,7 @@ capture_image_cb(capture *ceu, const unsigned char *frame_data, size_t length,
 {
 	struct camera_data *cam = (struct camera_data*)user_data;
 
-	queue_enq (cam->captured_queue, (void*)frame_data);
+	queue_enq (cam->captured_queue, frame_data);
 	cam->captured_frames++;
 }
 
@@ -197,12 +196,16 @@ void *convert_main(void *data)
 
 			shcodecs_encoder_get_input_physical_addr (pvt->encoders[i], (unsigned int *)&enc_y, (unsigned int *)&enc_c);
 
-			shveu_crop(pvt->veu, 1, 0, 0, pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h);
-			shveu_rescale(pvt->veu,
+			/* We are clipping, not scaling, as we need to perform a rotation,
+		   	but the VEU cannot do a rotate & scale at the same time. */
+			uiomux_lock (pvt->uiomux, UIOMUX_SH_VEU);
+			shveu_operation(0,
 				cap_y, cap_c,
-				cam->cap_w, cam->cap_h, V4L2_PIX_FMT_NV12,
+				cam->cap_w, cam->cap_h, cam->cap_w, SHVEU_YCbCr420,
 				enc_y, enc_c,
-				pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, V4L2_PIX_FMT_NV12);
+				pvt->encdata[i]->enc_w, pvt->encdata[i]->enc_h, pvt->encdata[i]->enc_w, SHVEU_YCbCr420,
+				pvt->rotate_cap);
+			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
 
 			/* Let the encoder get_input function return */
 			pthread_mutex_unlock(&pvt->encdata[i]->encode_start_mutex);
@@ -210,13 +213,15 @@ void *convert_main(void *data)
 
 		if (cam == pvt->encdata[0]->camera && pvt->do_preview) {
 			/* Use the VEU to scale the capture buffer to the frame buffer */
+			uiomux_lock (pvt->uiomux, UIOMUX_SH_VEU);
 			display_update(pvt->display,
 					cap_y, cap_c,
 					cam->cap_w, cam->cap_h, cam->cap_w,
 					V4L2_PIX_FMT_NV12);
+			uiomux_unlock (pvt->uiomux, UIOMUX_SH_VEU);
 		}
 
-		capture_queue_buffer (cam->ceu, (void*)cap_y);
+		capture_queue_buffer (cam->ceu, cap_y);
 		pthread_mutex_unlock(&cam->capture_start_mutex);
 
 		pvt->output_frames++;
@@ -319,7 +324,7 @@ shrecord_cleanup (void)
 
 	if (pvt->do_preview)
 		display_close(pvt->display);
-	shveu_close(pvt->veu);
+	shveu_close();
 
 	for (i=0; i < pvt->nr_encoders; i++) {
 		pvt->encdata[i]->active = 0;
@@ -422,12 +427,12 @@ void * shrecord_main (void * data)
 	}
 
 	/* VEU initialisation */
-	if ((pvt->veu = shveu_open()) == NULL) {
+	if (shveu_open() < 0) {
 		fprintf (stderr, "Could not open VEU, exiting\n");
 	}
 
 	if (pvt->do_preview) {
-		pvt->display = display_open();
+		pvt->display = display_open(0);
 		if (!pvt->display) {
 			return NULL;
 		}
