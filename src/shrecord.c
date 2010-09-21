@@ -18,8 +18,7 @@
  */
 
 /*
- * This program captures v4l2 input (e.g. from a camera), optionally crops
- * and rotates this, encodes this and shows it on the display.
+ * This code interfaces shcodecs-record to sighttpd. 
  */
 
 #ifdef HAVE_CONFIG_H
@@ -52,9 +51,6 @@
 #include "ringbuffer.h"
 
 /* #define DEBUG */
-
-/* Maximum number of cameras handled by the program */
-#define MAX_CAMERAS 8
 
 /* Maximum number of encoders per camera */
 #define MAX_ENCODERS 8
@@ -89,7 +85,7 @@ struct private_data {
 	int do_preview;
 };
 
-void debug_printf(const char *fmt, ...)
+static void debug_printf(const char *fmt, ...)
 {
 #ifdef DEBUG
 	va_list ap;
@@ -100,10 +96,6 @@ void debug_printf(const char *fmt, ...)
 }
 
 struct private_data pvt_data;
-
-static int alive=1;
-
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*****************************************************************************/
 
@@ -155,30 +147,31 @@ void * shrecord_main (void * data)
 	struct encode_data *eds = pvt->encdata;
 	int i, n, count;
 	unsigned char buffer[BUFFER_SIZE];
-	char *argv[MAX_ENCODERS + 3];
-	static char *shcodec_record = "shcodecs-record";
-	static char *preview_off = "-P";
+	const char *argv[MAX_ENCODERS + 3];
+	const char *shcodec_record = "shcodecs-record";
+	const char *preview_off = "-P";
 
 	/* structure argument */
 	n = 0;
-	argv[n++] = shcodec_record;
+	argv[n++] = (char*)shcodec_record;
 	if (!pvt->do_preview)
 		argv[n++] = preview_off;
 	for(i = 0; i < pvt->nr_encoders; i++)
-	    	argv[n++] = eds[i].ctrl_filename;
+		argv[n++] = eds[i].ctrl_filename;
 
 	/* launch shcodec_record */
 	pvt->shrecord_pid = fork();
 	if (pvt->shrecord_pid < 0) {
 		fprintf(stderr, "Can't fork()\n");
 		goto clean;
-	} if (pvt->shrecord_pid == 0) {
+	}
+	if (pvt->shrecord_pid == 0) {
 		execvp(argv[0], argv);
 
 		perror("execvp() failed");
 		exit(1);
 	} else {
-	    	fprintf(stderr, "Launched shcodec-record successively\n");
+		fprintf(stderr, "Launched shcodec-record successively\n");
 		signal(SIGCHLD, shrecord_sigchld_handler);
 	}
 
@@ -224,7 +217,6 @@ void * shrecord_main (void * data)
 				}
 			}
 		}
-
 	}
 	
 
@@ -249,7 +241,7 @@ shrecord_check (http_request * request, void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
 
-        return !strncmp (request->path, ed->path, strlen(ed->path));
+	return !strncmp (request->path, ed->path, strlen(ed->path));
 }
 
 static void
@@ -258,41 +250,41 @@ shrecord_head (http_request * request, params_t * request_headers, const char **
 {
 	struct encode_data * ed = (struct encode_data *)data;
 	params_t * r = *response_headers;
-        char length[16];
+	char length[16];
 
-        *status_line = http_status_line (HTTP_STATUS_OK);
+	*status_line = http_status_line (HTTP_STATUS_OK);
 
-        r = params_append (r, "Content-Type", "video/mp4");
+	r = params_append (r, "Content-Type", "video/mp4");
 }
 
 static void
 shrecord_body (int fd, http_request * request, params_t * request_headers, void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
-        size_t n, avail;
-        int rd;
+	size_t n, avail;
+	int rd;
 
-        rd = ringbuffer_open (&ed->rb);
+	rd = ringbuffer_open (&ed->rb);
 
-        while (ed->alive) {
-                while ((avail = ringbuffer_avail (&ed->rb, rd)) == 0)
-                        usleep (10000);
+	while (ed->alive) {
+		while ((avail = ringbuffer_avail (&ed->rb, rd)) == 0)
+			usleep (10000);
 
 #ifdef DEBUG
-                if (avail != 0) printf ("%s: %ld bytes available\n", __func__, avail);
+		if (avail != 0) printf ("%s: %ld bytes available\n", __func__, avail);
 #endif
-                n = ringbuffer_writefd (fd, &ed->rb, rd);
-                if (n == -1) {
-                        break;
-                }
+		n = ringbuffer_writefd (fd, &ed->rb, rd);
+		if (n == -1) {
+				break;
+		}
 
-                fsync (fd);
+		fsync (fd);
 #ifdef DEBUG
-                if (n!=0 || avail != 0) printf ("%s: wrote %ld of %ld bytes to socket\n", __func__, n, avail);
+		if (n!=0 || avail != 0) printf ("%s: wrote %ld of %ld bytes to socket\n", __func__, n, avail);
 #endif
-        }
+	}
 
-        ringbuffer_close (&ed->rb, rd);
+	ringbuffer_close (&ed->rb, rd);
 }
 
 static void
@@ -300,7 +292,7 @@ shrecord_delete (void * data)
 {
 	struct encode_data * ed = (struct encode_data *)data;
 
-        free (ed->rb.data);
+	free (ed->rb.data);
 }
 
 static int
@@ -352,8 +344,8 @@ shrecord_resource (const char * path, const char * ctlfile)
 	struct encode_data * ed = NULL;
 	struct private_data *pvt = &pvt_data;
 	int return_code;
-        unsigned char * data = NULL;
-        size_t len = 4096*16*32;
+	unsigned char * data = NULL;
+	size_t len = 4096*16*32;
 
 	if (pvt->nr_encoders > MAX_ENCODERS)
 		return NULL;
@@ -376,9 +368,9 @@ shrecord_resource (const char * path, const char * ctlfile)
 		return NULL;
 
 	/* init ring buffer */
-        if ((data = malloc (len)) == NULL)
+	if ((data = malloc (len)) == NULL)
 		return NULL;
-        ringbuffer_init (&ed->rb, data, len);
+	ringbuffer_init (&ed->rb, data, len);
 
 	ed->alive = 1;
 	pvt->nr_encoders++;
