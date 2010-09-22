@@ -185,7 +185,7 @@ void * shrecord_main (void * data)
 
 	for(i = 0; i < pvt->nr_encoders; i++) {
 		fprintf(stderr, "fifo for #%d = '%s'\n",i, eds[i].fifo_path);
-		pfds[i].fd = open(eds[i].fifo_path, O_RDWR, 0);
+		pfds[i].fd = open(eds[i].fifo_path, O_RDONLY, 0);
 		if (pfds[i].fd < 0) {
 			fprintf(stderr, "Can't open fifo - %s\n", eds[i].fifo_path);
 			goto clean;
@@ -195,7 +195,7 @@ void * shrecord_main (void * data)
 	}
 
 	while(1) {
-		n = poll(pfds, pvt->nr_encoders, 0);
+		n = poll(pfds, pvt->nr_encoders, -1);
 
 		if (n < 0) {
 			fprintf(stderr, "poll() failed.\n");
