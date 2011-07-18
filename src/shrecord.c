@@ -148,18 +148,18 @@ void * shrecord_main (void * data)
 	int i, n, count;
 	unsigned char buffer[BUFFER_SIZE];
 	const char *argv[MAX_ENCODERS + 3];
-	const char *shcodec_record = "shcodecs-record";
+	const char *shcodecs_record = "shcodecs-record";
 	const char *preview_off = "-P";
 
 	/* structure argument */
 	n = 0;
-	argv[n++] = (char*)shcodec_record;
+	argv[n++] = (char*)shcodecs_record;
 	if (!pvt->do_preview)
 		argv[n++] = preview_off;
 	for(i = 0; i < pvt->nr_encoders; i++)
 		argv[n++] = eds[i].ctrl_filename;
 
-	/* launch shcodec_record */
+	/* launch shcodecs-record */
 	pvt->shrecord_pid = fork();
 	if (pvt->shrecord_pid < 0) {
 		fprintf(stderr, "Can't fork()\n");
@@ -168,10 +168,10 @@ void * shrecord_main (void * data)
 	if (pvt->shrecord_pid == 0) {
 		execvp(argv[0], argv);
 
-		perror("execvp() failed");
+		perror("execvp() of shcodecs-record failed");
 		exit(1);
 	} else {
-		fprintf(stderr, "Launched shcodec-record successively\n");
+		fprintf(stderr, "Launched %s\n", shcodecs_record);
 		signal(SIGCHLD, shrecord_sigchld_handler);
 	}
 
