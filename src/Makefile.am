@@ -60,25 +60,16 @@ oggstdin_libs = $(OGGZ_LIBS)
 endif
 
 # SHRecord
+if HAVE_SHCODECS
 shrecord_headers = \
 	shrecord.h 
-#	avcbencsmp.h \
-#	capture.h \
-#	display.h \
-#	framerate.h \
-#	thrqueue.h \
-#	ControlFileUtil.h
 
 shrecord_sources = \
 	shrecord.c 
-#	capture.c \
-#	display.c \
-#	framerate.c \
-#	thrqueue.c \
-#	ControlFileUtil.c
 
 shrecord_cflags = # $(SHCODECS_CFLAGS) $(SHVEU_CFLAGS) $(UIOMUX_CFLAGS)
 shrecord_libs = # $(SHCODECS_LIBS) $(SHVEU_LIBS) $(UIOMUX_LIBS)
+endif
 
 # Main
 noinst_HEADERS = \

@@ -24,7 +24,9 @@
 #include "ogg-stdin.h"
 #endif
 
+#ifdef HAVE_SHCODECS
 #include "shrecord.h"
+#endif
 
 /* #define DEBUG */
 
@@ -68,7 +70,9 @@ void sig_handler(int sig)
 	oggstdin_sighandler ();
 #endif
 
+#ifdef HAVE_SHCODECS
         shrecord_sighandler ();
+#endif
 
 #ifdef DEBUG
         fprintf (stderr, "Got signal %d\n", sig);
@@ -92,7 +96,9 @@ int main(int argc, char *argv[])
 
         progname = argv[0];
 
+#ifdef HAVE_SHCODECS
 	shrecord_init();
+#endif
 
 	while (1) {
 #ifdef HAVE_GETOPT_LONG
@@ -162,7 +168,9 @@ int main(int argc, char *argv[])
 	oggstdin_run();
 #endif
 
+#ifdef HAVE_SHCODECS
 	shrecord_run();
+#endif
 
         signal (SIGINT, sig_handler);
         signal (SIGKILL, sig_handler);

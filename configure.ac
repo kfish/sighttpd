@@ -81,6 +81,17 @@ else
 fi
 AM_CONDITIONAL(HAVE_OGGZ, [test "x$HAVE_OGGZ" = "xyes"])
 
+dnl
+dnl Check for libshcodecs
+dnl
+PKG_CHECK_MODULES(SHCODECS, shcodecs >= 1.1.0, HAVE_SHCODECS="yes", HAVE_SHCODECS="no")
+if test "x$HAVE_SHCODECS" = "xyes" ; then
+  AC_DEFINE(HAVE_SHCODECS, [], [Define if have libshcodecs])
+  AC_SUBST(SHCODECS_CFLAGS)
+  AC_SUBST(SHCODECS_LIBS)
+fi
+AM_CONDITIONAL(HAVE_SHCODECS, [test "x$HAVE_SHCODECS" = "xyes"])
+
 # Checks for header files.
 AC_HEADER_RESOLV
 AC_HEADER_STDC
