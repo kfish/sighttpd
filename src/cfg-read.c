@@ -48,8 +48,10 @@ cfg_read_block_end (const char * name, void * user_data)
   } else if (!strncasecmp (name, "OggStdin", 8)) {
           cfg->resources = list_join (cfg->resources, oggstdin_resources (cfg->block_dict));
 #endif
+#ifdef HAVE_SHCODECS
   } else if (!strncasecmp (name, "SHRecord", 8)) {
 	  cfg->resources = list_join (cfg->resources, shrecord_resources (cfg->block_dict));
+#endif
   }
 
   dictionary_delete (cfg->block_dict);
