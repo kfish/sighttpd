@@ -10,11 +10,14 @@
 #include "params.h"
 #include "resource.h"
 
+#define DEFAULT_CONTENT_TYPE "text/plain"
+
 #define x_strdup(s) ((s)?strdup((s)):(NULL))
 
 struct statictext {
 	char * path;
 	char * text;
+	char * ctype;
 };
 
 static int
@@ -35,7 +38,7 @@ statictext_head (http_request * request, params_t * request_headers, const char 
 
         *status_line = http_status_line (HTTP_STATUS_OK);
 
-        r = params_append (r, "Content-Type", "text/plain");
+        r = params_append (r, "Content-Type", st->ctype);
         snprintf (length, 16, "%d", strlen (st->text));
         *response_headers = params_append (r, "Content-Length", length);
 }
@@ -60,7 +63,7 @@ statictext_delete (void * data)
 }
 
 struct resource *
-statictext_resource (char * path, char * text)
+statictext_resource (char * path, char * text, char * ctype)
 {
 	struct statictext * st;
 
@@ -69,6 +72,7 @@ statictext_resource (char * path, char * text)
 
 	st->path = x_strdup(path);
 	st->text = x_strdup(text);
+	st->ctype = x_strdup(ctype);
 
 	return resource_new (statictext_check, statictext_head, statictext_body, statictext_delete, st);
 }
@@ -79,14 +83,18 @@ statictext_resources (Dictionary * config)
 	list_t * l;
 	const char * path;
 	const char * text;
+	const char * ctype;
 
 	l = list_new();
 
 	path = dictionary_lookup (config, "Path");
 	text = dictionary_lookup (config, "Text");
+	ctype = dictionary_lookup (config, "Type");
+
+	if (!ctype) ctype = DEFAULT_CONTENT_TYPE;
 
 	if (path && text)
-		l = list_append (l, statictext_resource (path, text));
+		l = list_append (l, statictext_resource (path, text, ctype));
 
 	return l;
 }
